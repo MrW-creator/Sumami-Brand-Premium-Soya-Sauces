@@ -39,6 +39,12 @@ const App: React.FC = () => {
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   // Handlers
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
   
   // Standard Add to Cart (Used for Master Chef & Builder Results)
   const addToCart = (product: Product, quantity: number = 1, options?: string[], variantLabel?: string, overridePrice?: number) => {
@@ -416,12 +422,18 @@ const App: React.FC = () => {
                   Transform ordinary meals into culinary masterpieces with just a splash.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <a href="#bundles" className="px-8 py-4 bg-amber-600 hover:bg-amber-700 text-white rounded-full font-bold text-lg shadow-lg shadow-amber-900/50 transition-all hover:scale-105 text-center">
+                  <button 
+                    onClick={() => scrollToSection('bundles')}
+                    className="px-8 py-4 bg-amber-600 hover:bg-amber-700 text-white rounded-full font-bold text-lg shadow-lg shadow-amber-900/50 transition-all hover:scale-105 text-center cursor-pointer"
+                  >
                     Shop Bundles
-                  </a>
-                  <a href="#flavours" className="px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-full font-bold text-lg transition-all text-center">
+                  </button>
+                  <button 
+                    onClick={() => scrollToSection('flavours')}
+                    className="px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-full font-bold text-lg transition-all text-center cursor-pointer"
+                  >
                     Explore Flavours
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>
@@ -452,7 +464,7 @@ const App: React.FC = () => {
           </div>
 
           {/* Product Grid */}
-          <section id="flavours" className="py-20 bg-white">
+          <section id="flavours" className="py-20 bg-white scroll-mt-28">
             <div className="container mx-auto px-4">
               
               {/* SMART SAVER BANNER - EXPLAINS MIX & MATCH */}
@@ -625,7 +637,7 @@ const App: React.FC = () => {
           </section>
 
           {/* Bundles (Upsell) */}
-          <section id="bundles" className="py-20 bg-amber-50">
+          <section id="bundles" className="py-20 bg-amber-50 scroll-mt-28">
             <div className="container mx-auto px-4">
               <div className="text-center mb-16">
                  <span className="text-amber-600 font-bold tracking-widest uppercase">Best Value</span>
