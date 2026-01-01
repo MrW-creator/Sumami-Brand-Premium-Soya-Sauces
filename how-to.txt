@@ -1,0 +1,99 @@
+HOW TO LINK WOOCOMMERCE PRODUCTS TO THIS LANDING PAGE
+
+================================================================================
+1. THE CONCEPT: "HEADLESS" FUNNEL
+================================================================================
+This landing page runs separately from your main WordPress theme. It has its own 
+"Product Script" located in the file `constants.ts`.
+
+It does NOT automatically pull products from your website every time it loads. 
+We do this intentionally to make the landing page load instantly and convert 
+sales faster than a standard WooCommerce page.
+
+However, it is designed to SEND data back to WooCommerce.
+
+================================================================================
+2. HOW TO LINK THEM (THE "wcId")
+================================================================================
+In the file `constants.ts`, you will see a list of products. 
+Each product has a field called `wcId`.
+
+   {
+     id: 'garlic-ginger',
+     wcId: 1001,  <-- THIS IS THE KEY
+     name: 'Infused With Garlic & Ginger',
+     ...
+   }
+
+The `wcId` must match the "Product ID" inside your WordPress Admin.
+
+Step-by-step:
+1. Go to your WordPress Dashboard > Products.
+2. Hover over a product (e.g., Garlic & Ginger Soya Sauce).
+3. You will see a number appear (e.g., "ID: 452").
+4. Open `constants.ts` in this code.
+5. Change `wcId: 1001` to `wcId: 452`.
+
+Now, when a sale happens, the system knows exactly which item to deduct from stock.
+
+================================================================================
+3. PRICING & IMAGES
+================================================================================
+Because the landing page is separate for speed:
+
+- IMAGES: You upload them to WordPress Media Library, copy the URL, and paste it 
+  into `constants.ts`.
+  
+- PRICES: If you change a price on WooCommerce, you must MANUALLY update the price 
+  in `constants.ts` as well.
+
+================================================================================
+4. HOW ORDERS ARE PROCESSED
+================================================================================
+There are two ways checkout works in this app:
+
+A) Instant Checkout (Yoco Overlay):
+   1. Customer pays immediately on the landing page.
+   2. The App sends a "Secret Message" (API Call) to WooCommerce.
+   3. A new Order is created in your WooCommerce Orders list automatically.
+   * Requirement: You must add your WooCommerce Consumer Key & Secret in `constants.ts`.
+
+B) "Checkout on Web" Button:
+   1. The customer clicks the link.
+   2. They are redirected to your actual website checkout.
+   3. The URL carries the product data (e.g., `?add-to-cart=452&quantity=3`).
+
+================================================================================
+5. CHECKLIST TO GO LIVE
+================================================================================
+1. [ ] Log into WordPress > WooCommerce > Settings > Advanced > REST API.
+2. [ ] Create a new Key with "Read/Write" permissions.
+3. [ ] Copy the Consumer Key and Consumer Secret.
+4. [ ] Paste them into `WC_CONFIG` inside `constants.ts`.
+5. [ ] Update all `wcId` numbers in `constants.ts` to match your real Product IDs.
+6. [ ] Update the images to your real product image URLs.
+
+================================================================================
+6. BUNDLES & VARIANTS
+================================================================================
+**For the "Pick 3" Bundle (Trio):**
+- In WooCommerce, just create a "Simple Product" called "Starter Trio" with price R315.
+- The Landing Page handles the selection logic.
+- When the order is sent to WooCommerce, the customer's choices (e.g. "Garlic, Chili, Fenugreek") are sent in the "Customer Note" or Metadata field. You will see this on the order email.
+
+**For Single Flavours (3-Pack / 6-Pack):**
+- The app handles the pricing logic automatically.
+- It sends the base Product ID to WooCommerce with the correct quantity and total price paid.
+
+================================================================================
+7. SHIPPING STRATEGY
+================================================================================
+**Model: All-Inclusive / Free Shipping**
+
+The app is currently configured to show **FREE SHIPPING** on all orders.
+The shipping cost is built into the pack prices:
+- 3-Pack: R315 (effectively R165 product + R150 shipping)
+- 6-Pack: R480 (effectively R330 product + R150 shipping)
+- Master Chef: R535 (effectively R385 product + R150 shipping)
+
+This simplifies the user experience significantly. They see one price, pay one price, and get "Free Shipping".
