@@ -128,5 +128,5 @@ export const ASSETS = {
   // A generic quality seal/badge (transparent PNG)
   seal: 'https://cdn-icons-png.flaticon.com/512/6555/6555979.png',
   // Image for the cookbook bonus
-  cookbook: 'https://images.unsplash.com/photo-1589820296153-17d40110f59d?auto=format&fit=crop&w=800&q=80'
+  cookbook: 'https://www.biznizart.co.za/wp-content/uploads/2026/01/Sumami-cookbook.png'
 };

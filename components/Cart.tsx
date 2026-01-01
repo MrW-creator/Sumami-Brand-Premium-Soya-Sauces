@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Plus, Minus, ShoppingBag, Trash2, ExternalLink, Truck, Tag, AlertCircle } from 'lucide-react';
+import { X, Plus, Minus, ShoppingBag, Trash2, ExternalLink, Truck, Tag, AlertCircle, Gift } from 'lucide-react';
 import { CartItem } from '../types';
 
 interface CartProps {
@@ -142,6 +142,19 @@ const Cart: React.FC<CartProps> = ({
         {/* Footer */}
         {items.length > 0 && (
           <div className="border-t bg-gray-50 p-6 space-y-4">
+            
+            {/* Free Bonuses Section */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+               <div className="flex items-center gap-2 font-bold text-amber-800 mb-2">
+                 <Gift className="w-4 h-4" />
+                 <span>Free Gifts Unlocked!</span>
+               </div>
+               <ul className="space-y-1 text-xs text-amber-900 ml-6 list-disc">
+                 <li>The Sumami Alchemy Cookbook <span className="font-bold text-amber-600">(Value R250)</span></li>
+                 <li>VIP Discount Card (For your next purchase)</li>
+               </ul>
+            </div>
+
             <div className="space-y-2">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>

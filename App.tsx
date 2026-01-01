@@ -208,7 +208,7 @@ const App: React.FC = () => {
               Check your email inbox for:
             </p>
             <ul className="text-sm text-gray-600 space-y-1 ml-4 list-disc">
-              <li>The Umami Alchemy Cookbook (PDF)</li>
+              <li>The Sumami Alchemy Cookbook (PDF)</li>
               <li>Your "Golden Ticket" is inside the box</li>
             </ul>
           </div>
@@ -600,7 +600,7 @@ const App: React.FC = () => {
                      </div>
                      <div className="flex-1">
                         <div className="flex justify-between items-start mb-2">
-                           <h3 className="text-xl font-bold text-amber-200">The Umami Alchemy Cookbook</h3>
+                           <h3 className="text-xl font-bold text-amber-200">The Sumami Alchemy Cookbook</h3>
                         </div>
                         <span className="text-xs bg-amber-500 text-white px-2 py-0.5 rounded font-bold mb-3 inline-block">R250 Value</span>
                         <p className="text-gray-300 text-sm">50+ recipes. Learn how to transform simple weeknight meals into gourmet experiences.</p>
