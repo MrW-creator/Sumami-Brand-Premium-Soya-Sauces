@@ -148,7 +148,7 @@ const Cart: React.FC<CartProps> = ({
                  <span>Free Gifts Unlocked!</span>
                </div>
                <ul className="space-y-1 text-xs text-amber-900 ml-6 list-disc">
-                 <li>The Sumami Alchemy Cookbook <span className="font-bold text-amber-600">(Value R250)</span></li>
+                 <li>The Sumami Alchemy Cookbook <span className="font-bold text-amber-600">(Value R250)</span> <span className="text-amber-800/60 block xs:inline">- (Max 1 per order)</span></li>
                  <li>VIP Discount Card (For your next purchase)</li>
                </ul>
             </div>

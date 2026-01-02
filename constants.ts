@@ -16,6 +16,11 @@ export const WC_CONFIG = {
 export const YOCO_PUBLIC_KEY = ''; 
 
 // -----------------------------------------------------------------------------------------
+// DOWNLOAD LINKS
+// -----------------------------------------------------------------------------------------
+export const COOKBOOK_DOWNLOAD_URL = 'https://drive.google.com/file/d/YOUR_LINK_HERE/view?usp=sharing'; // <--- PASTE YOUR GOOGLE DRIVE LINK HERE
+
+// -----------------------------------------------------------------------------------------
 // INSTRUCTIONS FOR IMAGES:
 // 1. Upload your product images to your WordPress Media Library at biznizart.co.za
 // 2. Copy the "File URL" for each image.
@@ -26,6 +31,8 @@ export const PRODUCTS: Product[] = [
   {
     id: 'garlic-ginger',
     wcId: 1315,
+    wcId3Pack: 1372,
+    wcId6Pack: 1387,
     name: 'Infused With Garlic & Ginger',
     subName: 'Sumami Brand Soya Sauce',
     description: 'The perfect balance of aromatic garlic and zesty ginger. Ideal for stir-frys and marinades.',
@@ -37,6 +44,8 @@ export const PRODUCTS: Product[] = [
   {
     id: 'citrus-coriander',
     wcId: 1313,
+    wcId3Pack: 1374,
+    wcId6Pack: 1401,
     name: 'Infused With Citrus & Coriander',
     subName: 'Sumami Brand Soya Sauce',
     description: 'A refreshing burst of citrus paired with earthy coriander. Perfect for fish and salads.',
@@ -48,6 +57,8 @@ export const PRODUCTS: Product[] = [
   {
     id: 'chili',
     wcId: 1312,
+    wcId3Pack: 1375,
+    wcId6Pack: 1389,
     name: 'Infused With Chili',
     subName: 'Sumami Brand Soya Sauce',
     description: 'For those who crave heat. A spicy kick that elevates any dish without overpowering the umami.',
@@ -59,6 +70,8 @@ export const PRODUCTS: Product[] = [
   {
     id: 'beef-stock',
     wcId: 1287,
+    wcId3Pack: 1377,
+    wcId6Pack: 1402,
     name: 'Infused With Beef Stock',
     subName: 'Sumami Brand Soya Sauce',
     description: 'Deep, rich, and meaty. Enhance your stews, gravies, and slow-cooked meals.',
@@ -70,6 +83,8 @@ export const PRODUCTS: Product[] = [
   {
     id: 'black-pepper',
     wcId: 1311,
+    wcId3Pack: 1376,
+    wcId6Pack: 1391,
     name: 'Infused With Black Pepper & Sea Salt',
     subName: 'Sumami Brand Soya Sauce',
     description: 'A classic combination. Sharp cracked pepper meets natural sea salt.',
@@ -81,6 +96,8 @@ export const PRODUCTS: Product[] = [
   {
     id: 'sesame-mustard',
     wcId: 1316,
+    wcId3Pack: 1364,
+    wcId6Pack: 1378,
     name: 'Infused With Roasted Sesame & Mustard',
     subName: 'Sumami Brand Soya Sauce',
     description: 'Nutty, toasted notes with a mustard tang. incredible on sushi and roasted vegetables.',
@@ -92,6 +109,8 @@ export const PRODUCTS: Product[] = [
   {
     id: 'fenugreek',
     wcId: 1314,
+    wcId3Pack: 1373,
+    wcId6Pack: 1388,
     name: 'Infused With Fenugreek',
     subName: 'Sumami Brand Soya Sauce',
     description: 'A warm, nutty profile with hints of maple. Transforms curries and stews into rich, complex dishes.',
@@ -116,7 +135,7 @@ export const BUNDLES: Product[] = [
   },
   {
     id: 'master-chef',
-    wcId: 2002,
+    wcId: 1403,
     name: 'Master Chef Collection',
     subName: 'Full Range (7 Bottles)',
     description: 'Complete your kitchen arsenal. One of every infusion. The ultimate gift for foodies.',

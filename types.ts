@@ -1,6 +1,8 @@
 export interface Product {
   id: string;
-  wcId: number; // WooCommerce Product ID for integration
+  wcId: number; // WooCommerce Product ID for Single Bottle
+  wcId3Pack?: number; // WooCommerce Product ID for 3-Pack
+  wcId6Pack?: number; // WooCommerce Product ID for 6-Pack
   name: string;
   subName: string;
   description: string;

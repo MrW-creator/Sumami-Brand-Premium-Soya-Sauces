@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download } from 'lucide-react';
-import { PRODUCTS, BUNDLES, ASSETS, WC_CONFIG } from './constants';
+import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download, Info } from 'lucide-react';
+import { PRODUCTS, BUNDLES, ASSETS, WC_CONFIG, COOKBOOK_DOWNLOAD_URL } from './constants';
 import { Product, CartItem, CustomerDetails } from './types';
 import Cart from './components/Cart';
 import YocoCheckout from './components/YocoCheckout';
@@ -83,7 +83,17 @@ const App: React.FC = () => {
 
   const addSaucePack = (product: Product, size: 3 | 6) => {
     const price = size === 3 ? 315 : 480;
-    addToCart(product, 1, undefined, `${size}-Pack`, price);
+    
+    // Determine the correct WooCommerce ID to use
+    // If we have a specific ID for the pack size, use it. Otherwise fall back to base ID.
+    let targetWcId = product.wcId;
+    if (size === 3 && product.wcId3Pack) targetWcId = product.wcId3Pack;
+    if (size === 6 && product.wcId6Pack) targetWcId = product.wcId6Pack;
+    
+    // Create a product clone with the correct ID for the cart
+    const productToAdd = { ...product, wcId: targetWcId };
+    
+    addToCart(productToAdd, 1, undefined, `${size}-Pack`, price);
   };
 
   const handleBundleClick = (bundle: Product) => {
@@ -299,19 +309,27 @@ Please confirm you received it!`;
             </div>
           </div>
 
-          <div className="bg-amber-50 p-6 rounded-2xl text-left border border-amber-100 flex items-start gap-4 shadow-sm">
-             <div className="bg-amber-100 p-3 rounded-lg">
-                <Gift className="w-6 h-6 text-amber-600" />
+          <div className="bg-amber-50 p-6 rounded-2xl text-left border border-amber-100 shadow-sm flex flex-col gap-4">
+             <div className="flex items-start gap-4">
+                <div className="bg-amber-100 p-3 rounded-lg">
+                   <Gift className="w-6 h-6 text-amber-600" />
+                </div>
+                <div>
+                   <h3 className="font-bold text-amber-900 mb-1">Bonus Unlocked!</h3>
+                   <p className="text-sm text-amber-800/80">
+                     Your copy of <strong>The Sumami Alchemy Cookbook</strong> is ready for download.
+                   </p>
+                </div>
              </div>
-             <div>
-                <h3 className="font-bold text-amber-900 mb-1">Check your Inbox!</h3>
-                <p className="text-sm text-amber-800/80 mb-2">
-                  We've emailed you <strong>The Sumami Alchemy Cookbook</strong>. 
-                </p>
-                <p className="text-xs text-amber-600">
-                   (Check your Spam folder if you don't see it within 5 minutes)
-                </p>
-             </div>
+             <a
+               href={COOKBOOK_DOWNLOAD_URL}
+               target="_blank"
+               rel="noopener noreferrer"
+               className="flex items-center justify-center gap-2 w-full bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold py-3 rounded-lg transition-colors border border-amber-300"
+             >
+               <Download className="w-5 h-5" />
+               Download eBook (PDF)
+             </a>
           </div>
 
           <div className="text-center mt-8">
@@ -523,11 +541,18 @@ Please confirm you received it!`;
             </div>
 
             <div className="container mx-auto px-4 z-10 pt-20">
-              <div className="max-w-2xl text-white">
-                <div className="inline-flex items-center gap-2 bg-amber-500/20 backdrop-blur-sm border border-amber-500/50 rounded-full px-4 py-1 mb-6">
-                  <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                  <span className="text-sm font-medium text-amber-100">Voted Best Artisan Sauce 2024</span>
+              <div className="max-w-3xl text-white">
+                <div className="flex flex-wrap items-center gap-3 mb-6">
+                  <div className="inline-flex items-center gap-2 bg-amber-500/20 backdrop-blur-sm border border-amber-500/50 rounded-full px-4 py-1">
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                    <span className="text-sm font-medium text-amber-100">Voted Best Artisan Sauce 2024</span>
+                  </div>
+                   <div className="inline-flex items-center gap-2 bg-green-500/90 backdrop-blur-sm border border-green-400 rounded-full px-4 py-1">
+                    <Truck className="w-4 h-4 text-white" />
+                    <span className="text-sm font-bold text-white uppercase tracking-wide">Free Nationwide Delivery</span>
+                  </div>
                 </div>
+                
                 <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
                   Unlock the <br/>
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-600">
@@ -554,18 +579,14 @@ Please confirm you received it!`;
                 </div>
               </div>
             </div>
-            
-            {/* Seal Floating */}
-            <div className="absolute bottom-10 right-10 hidden md:block">
-                <img src={ASSETS.seal} alt="Premium Quality Seal" className="w-32 h-32 md:w-48 md:h-48 drop-shadow-2xl" />
-            </div>
           </section>
 
-          {/* Shipping Banner */}
-          <div className="bg-gray-900 text-white py-3 text-center text-sm font-medium">
-            <p className="flex items-center justify-center gap-2">
-              <Truck className="w-4 h-4 text-amber-500" />
-              <span className="text-amber-400 font-bold">FREE Shipping on ALL Orders!</span>
+          {/* Shipping Banner - UPDATED TO BE PROMINENT */}
+          <div className="bg-gradient-to-r from-green-600 to-green-700 text-white py-4 text-center text-base font-black uppercase tracking-widest shadow-lg relative z-20">
+            <p className="flex items-center justify-center gap-3 animate-pulse">
+              <Truck className="w-5 h-5" />
+              <span>Limited Offer: Free Shipping on ALL Orders Today!</span>
+              <Truck className="w-5 h-5 transform scale-x-[-1]" />
             </p>
           </div>
 
@@ -750,6 +771,15 @@ Please confirm you received it!`;
                      </div>
                   </div>
                 </div>
+
+                {/* DISCLAIMER FOR COOKBOOK */}
+                <div className="mt-8 max-w-2xl mx-auto">
+                    <p className="flex items-center justify-center gap-2 text-amber-200/60 text-sm">
+                      <Info className="w-4 h-4" />
+                      <span>Note: Only one digital cookbook download link provided per completed order.</span>
+                    </p>
+                </div>
+
              </div>
           </section>
 
@@ -766,7 +796,7 @@ Please confirm you received it!`;
                 {BUNDLES.map((bundle) => (
                    <div key={bundle.id} className={`flex-1 bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col relative ${bundle.highlight ? 'ring-4 ring-amber-500 transform md:-translate-y-4' : ''}`}>
                       {bundle.highlight && (
-                        <div className="absolute top-0 inset-x-0 bg-amber-500 text-white text-center py-1 text-sm font-bold uppercase tracking-wide z-10">
+                        <div className="absolute top-0 inset-x-0 bg-green-600 text-white text-center py-1 text-sm font-bold uppercase tracking-wide z-10">
                            Most Popular &bull; Free Shipping
                         </div>
                       )}
