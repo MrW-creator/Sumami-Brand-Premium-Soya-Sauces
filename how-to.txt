@@ -58,13 +58,35 @@ A) Instant Checkout (Yoco Overlay):
    3. A new Order is created in your WooCommerce Orders list automatically.
    * Requirement: You must add your WooCommerce Consumer Key & Secret in `constants.ts`.
 
-B) "Checkout on Web" Button:
-   1. The customer clicks the link.
-   2. They are redirected to your actual website checkout.
-   3. The URL carries the product data (e.g., `?add-to-cart=452&quantity=3`).
+================================================================================
+5. INVOICES & EMAILS
+================================================================================
+Who sends the invoice? **WooCommerce.**
+
+Once the app syncs the order to your WordPress site:
+1. WooCommerce detects a "New Order".
+2. It automatically emails the **"New Order" notification** to your Admin Email.
+3. It automatically emails the **"Order Receipt / Invoice"** to the Customer's email.
+
+Ensure your WooCommerce Email settings are active in: 
+WooCommerce > Settings > Emails.
 
 ================================================================================
-5. CHECKLIST TO GO LIVE
+6. WHATSAPP NOTIFICATIONS
+================================================================================
+The landing page includes a "Manual" WhatsApp button on the success screen.
+If you want **AUTOMATIC** WhatsApp messages sent to you (066 243 4867) 
+every time an order hits your backend, you must install a plugin on your WordPress site.
+
+Recommended Plugin: **WPNotif** or **Twilio for WooCommerce**.
+
+Setup:
+1. Install the plugin on WordPress.
+2. Configure it to send a message to "Administrator" (You) whenever "Order Status changes to Processing".
+3. This will alert your phone automatically 24/7.
+
+================================================================================
+7. CHECKLIST TO GO LIVE
 ================================================================================
 1. [ ] Log into WordPress > WooCommerce > Settings > Advanced > REST API.
 2. [ ] Create a new Key with "Read/Write" permissions.
@@ -74,19 +96,7 @@ B) "Checkout on Web" Button:
 6. [ ] Update the images to your real product image URLs.
 
 ================================================================================
-6. BUNDLES & VARIANTS
-================================================================================
-**For the "Pick 3" Bundle (Trio):**
-- In WooCommerce, just create a "Simple Product" called "Starter Trio" with price R315.
-- The Landing Page handles the selection logic.
-- When the order is sent to WooCommerce, the customer's choices (e.g. "Garlic, Chili, Fenugreek") are sent in the "Customer Note" or Metadata field. You will see this on the order email.
-
-**For Single Flavours (3-Pack / 6-Pack):**
-- The app handles the pricing logic automatically.
-- It sends the base Product ID to WooCommerce with the correct quantity and total price paid.
-
-================================================================================
-7. SHIPPING STRATEGY
+8. SHIPPING STRATEGY
 ================================================================================
 **Model: All-Inclusive / Free Shipping**
 
@@ -97,3 +107,20 @@ The shipping cost is built into the pack prices:
 - Master Chef: R535 (effectively R385 product + R150 shipping)
 
 This simplifies the user experience significantly. They see one price, pay one price, and get "Free Shipping".
+
+================================================================================
+9. CUSTOMER DATA & LOGGING
+================================================================================
+**YES, all customer details are logged.**
+
+When a customer pays on the landing page, the system sends a complete "Data Packet" 
+to your WooCommerce store containing:
+
+1. First Name & Last Name
+2. Email Address
+3. **Phone Number** (Added to checkout form)
+4. Delivery Address, City, & Zip Code
+5. Specific items purchased (including flavours chosen)
+
+You will find this information in **WordPress > WooCommerce > Orders**.
+You can print shipping labels and invoices directly from there using your existing tools.

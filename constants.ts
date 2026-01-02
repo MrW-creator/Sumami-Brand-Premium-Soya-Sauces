@@ -122,11 +122,11 @@ export const BUNDLES: Product[] = [
 
 export const ASSETS = {
   // A dark, moody food background
-  heroBg: 'https://www.biznizart.co.za/wp-content/uploads/2025/12/ChatGPT-Image-Dec-28-2025-02_53_46-PM.png',
+  heroBg: 'https://www.biznizart.co.za/wp-content/uploads/2026/01/promote-fenugreek.png',
   // A chef cooking lifestyle shot
-  lifestyle: 'https://images.unsplash.com/photo-1556910103-1c02745a30bf?auto=format&fit=crop&w=1200&q=80', 
-  // A generic quality seal/badge (transparent PNG)
-  seal: 'https://cdn-icons-png.flaticon.com/512/6555/6555979.png',
+  lifestyle: 'https://www.biznizart.co.za/wp-content/uploads/2026/01/group-table.png', 
+  // A premium quality gold seal
+  seal: 'https://cdn-icons-png.flaticon.com/512/3502/3502601.png',
   // Image for the cookbook bonus
   cookbook: 'https://www.biznizart.co.za/wp-content/uploads/2026/01/Sumami-cookbook.png'
 };

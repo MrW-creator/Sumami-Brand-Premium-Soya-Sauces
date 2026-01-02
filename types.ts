@@ -20,6 +20,7 @@ export interface CustomerDetails {
   firstName: string;
   lastName: string;
   email: string;
+  phone: string; // Added Phone Number
   address: string;
   city: string;
   zipCode: string;

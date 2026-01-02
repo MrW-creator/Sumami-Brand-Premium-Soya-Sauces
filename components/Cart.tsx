@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Plus, Minus, ShoppingBag, Trash2, ExternalLink, Truck, Tag, AlertCircle, Gift } from 'lucide-react';
+import { X, Plus, Minus, ShoppingBag, Trash2, Truck, Tag, AlertCircle, Gift } from 'lucide-react';
 import { CartItem } from '../types';
 
 interface CartProps {
@@ -9,7 +9,6 @@ interface CartProps {
   onUpdateQuantity: (index: number, delta: number) => void;
   onRemove: (index: number) => void;
   onCheckout: () => void;
-  onWebCheckout: () => void;
   shippingCost: number;
   freeShippingThreshold: number;
   discountAmount?: number;
@@ -23,7 +22,6 @@ const Cart: React.FC<CartProps> = ({
   onUpdateQuantity, 
   onRemove, 
   onCheckout, 
-  onWebCheckout,
   shippingCost,
   freeShippingThreshold,
   discountAmount = 0,
@@ -184,13 +182,6 @@ const Cart: React.FC<CartProps> = ({
               className="w-full py-4 bg-amber-600 text-white rounded-xl font-bold text-lg hover:bg-amber-700 transition-all shadow-lg active:scale-95"
             >
               Secure Checkout
-            </button>
-            
-            <button 
-              onClick={onWebCheckout}
-              className="w-full py-3 bg-white text-gray-900 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
-            >
-              Checkout on biznizart.co.za <ExternalLink className="w-4 h-4" />
             </button>
           </div>
         )}

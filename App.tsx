@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap } from 'lucide-react';
+import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download } from 'lucide-react';
 import { PRODUCTS, BUNDLES, ASSETS, WC_CONFIG } from './constants';
 import { Product, CartItem, CustomerDetails } from './types';
 import Cart from './components/Cart';
 import YocoCheckout from './components/YocoCheckout';
 import BundleBuilder from './components/BundleBuilder';
+import LegalModal, { PolicyType } from './components/LegalModal';
 
 // Shipping is now all inclusive (FREE)
 const SHIPPING_COST = 0;
@@ -13,19 +14,23 @@ const App: React.FC = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
+  
+  // Legal Modal State
+  const [activePolicy, setActivePolicy] = useState<PolicyType>(null);
+
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'details' | 'payment' | 'success'>('cart');
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails>({
-    firstName: '', lastName: '', email: '', address: '', city: '', zipCode: ''
+    firstName: '', lastName: '', email: '', phone: '', address: '', city: '', zipCode: ''
   });
+
+  // State to hold the order details for the Success View (after cart is cleared)
+  const [lastOrder, setLastOrder] = useState<{items: CartItem[], total: number, discount: number} | null>(null);
 
   // --- CALCULATION LOGIC INCLUDING MIX & MATCH DISCOUNT ---
   const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   
   // Calculate Mix & Match Discount
-  // Logic: Every 2 packs of "3-Pack" (or Trios) triggers a discount to bring price down to 6-Pack level.
-  // Savings: (315 * 2) - 480 = 630 - 480 = 150.
   const packsOf3Count = cartItems.reduce((acc, item) => {
-    // Check if it is a single product 3-pack OR the Starter Trio bundle
     if (item.variantLabel === '3-Pack' || item.id === 'starter-pack') {
       return acc + item.quantity;
     }
@@ -46,10 +51,9 @@ const App: React.FC = () => {
     }
   };
   
-  // Standard Add to Cart (Used for Master Chef & Builder Results)
+  // Standard Add to Cart
   const addToCart = (product: Product, quantity: number = 1, options?: string[], variantLabel?: string, overridePrice?: number) => {
     setCartItems(prev => {
-      // Create a unique ID for the item based on ID + Options + Variant
       const uniqueId = `${product.id}-${variantLabel || ''}-${options?.sort().join(',') || ''}`;
       
       const existing = prev.find(item => {
@@ -77,17 +81,11 @@ const App: React.FC = () => {
     setIsCartOpen(true);
   };
 
-  // Logic for adding a Single Sauce Pack (3 or 6)
   const addSaucePack = (product: Product, size: 3 | 6) => {
-    // Pricing formula based on user request:
-    // 3 Pack = R315 (Matches Trio)
-    // 6 Pack = R480 (Formula: 55*6 + 150 = 480)
     const price = size === 3 ? 315 : 480;
-    
     addToCart(product, 1, undefined, `${size}-Pack`, price);
   };
 
-  // Logic for adding the Trio Bundle (Opens Builder)
   const handleBundleClick = (bundle: Product) => {
     if (bundle.id === 'starter-pack') {
       setIsBuilderOpen(true);
@@ -99,7 +97,6 @@ const App: React.FC = () => {
   const handleBuilderComplete = (selectedIds: string[]) => {
     const trioProduct = BUNDLES.find(b => b.id === 'starter-pack');
     if (trioProduct) {
-      // Map IDs to Names for display
       const selectedNames = selectedIds.map(id => {
         const p = PRODUCTS.find(p => p.id === id);
         return p ? p.name.replace('Infused With ', '') : id;
@@ -131,24 +128,17 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // --- WOOCOMMERCE INTEGRATION LOGIC ---
-  const handleWebCheckout = () => {
-    window.location.href = `${WC_CONFIG.baseUrl}/checkout`;
-  };
-
   const syncToWooCommerce = async (details: CustomerDetails, items: CartItem[]) => {
+    // Logic as defined previously
     const lineItems = items.map(item => {
-        // Construct a note for the specific item options
         let note = "";
         if (item.variantLabel) note += `[${item.variantLabel}] `;
         if (item.selectedOptions && item.selectedOptions.length > 0) {
             note += `Selection: ${item.selectedOptions.join(', ')}`;
         }
-
         return {
             product_id: item.wcId,
             quantity: item.quantity,
-            // We pass metadata if possible, or use the main customer note
             meta_data: note ? [{ key: "Customer Selection", value: note }] : []
         };
     });
@@ -171,7 +161,7 @@ const App: React.FC = () => {
         postcode: details.zipCode,
         country: 'ZA',
         email: details.email,
-        phone: ''
+        phone: details.phone // Map phone number here
       },
       line_items: lineItems,
       customer_note: `Generated by Landing Page. ${fullNote}`
@@ -188,43 +178,128 @@ const App: React.FC = () => {
   };
 
   const handlePaymentSuccess = () => {
+    // 1. Save order details for the receipt view
+    setLastOrder({
+      items: [...cartItems],
+      total: total,
+      discount: discountAmount
+    });
+
+    // 2. Sync to Backend
     syncToWooCommerce(customerDetails, cartItems);
+
+    // 3. Move to success and clear cart
     setCheckoutStep('success');
     setCartItems([]);
   };
 
+  // Construct WhatsApp Message
+  const getWhatsAppLink = () => {
+    if (!lastOrder) return '';
+    
+    const itemsList = lastOrder.items.map(i => 
+      `${i.quantity}x ${i.name} ${i.variantLabel ? `(${i.variantLabel})` : ''}`
+    ).join(', ');
+    
+    const message = `Hi Sumami Brand! 👋 I just placed an order. 
+    
+Name: ${customerDetails.firstName} ${customerDetails.lastName}
+Phone: ${customerDetails.phone}
+Total: R${lastOrder.total.toFixed(2)}
+Items: ${itemsList}
+
+Please confirm you received it!`;
+
+    return `https://wa.me/27662434867?text=${encodeURIComponent(message)}`;
+  };
+
   // Views
-  if (checkoutStep === 'success') {
+  if (checkoutStep === 'success' && lastOrder) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-        <div className="bg-white p-10 rounded-3xl shadow-2xl text-center max-w-lg w-full">
-          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="w-12 h-12 text-green-600" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Order Confirmed!</h1>
-          <p className="text-gray-600 mb-6">
-            Thank you, {customerDetails.firstName}. Your Sumami Brand experience is being prepared.
-          </p>
+        <div className="w-full max-w-lg">
           
-          <div className="bg-amber-50 p-6 rounded-xl text-left mb-8 border border-amber-100">
-            <h3 className="font-bold text-amber-900 mb-2 flex items-center gap-2">
-              <Gift className="w-5 h-5" /> Your Bonuses are on the way!
-            </h3>
-            <p className="text-sm text-gray-700 mb-2">
-              Check your email inbox for:
+          <div className="bg-white p-8 rounded-3xl shadow-2xl text-center mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check className="w-10 h-10 text-green-600" />
+            </div>
+            <h1 className="text-3xl font-black text-gray-900 mb-2">Order Confirmed!</h1>
+            <p className="text-gray-500 mb-6">
+              Thank you, {customerDetails.firstName}. We've sent an invoice to <strong>{customerDetails.email}</strong>.
             </p>
-            <ul className="text-sm text-gray-600 space-y-1 ml-4 list-disc">
-              <li>The Sumami Alchemy Cookbook (PDF)</li>
-              <li>Your "Golden Ticket" is inside the box</li>
-            </ul>
+            
+            {/* WHATSAPP CTA */}
+            <a 
+              href={getWhatsAppLink()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-3 w-full bg-[#25D366] hover:bg-[#20bd5a] text-white py-4 rounded-xl font-bold shadow-lg shadow-green-200 hover:shadow-xl transition-all active:scale-95 mb-6"
+            >
+              <MessageCircle className="w-6 h-6" />
+              <span>Confirm Order on WhatsApp</span>
+            </a>
+
+            {/* DIGITAL RECEIPT */}
+            <div className="bg-gray-50 rounded-xl p-6 text-left border border-gray-100">
+               <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-2">
+                 <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Receipt</span>
+                 <span className="text-xs font-bold text-gray-400">{new Date().toLocaleDateString()}</span>
+               </div>
+               
+               <div className="space-y-3 mb-4">
+                 {lastOrder.items.map((item, idx) => (
+                   <div key={idx} className="flex justify-between text-sm">
+                     <span className="text-gray-800">
+                       <span className="font-bold">{item.quantity}x</span> {item.name} <span className="text-gray-400 text-xs">{item.variantLabel}</span>
+                     </span>
+                     <span className="font-medium">R {(item.price * item.quantity).toFixed(2)}</span>
+                   </div>
+                 ))}
+               </div>
+
+               <div className="border-t border-gray-200 pt-3 space-y-1">
+                 {lastOrder.discount > 0 && (
+                   <div className="flex justify-between text-sm text-amber-600">
+                     <span>Discount</span>
+                     <span>- R {lastOrder.discount.toFixed(2)}</span>
+                   </div>
+                 )}
+                 <div className="flex justify-between text-sm text-green-600">
+                   <span>Shipping</span>
+                   <span>FREE</span>
+                 </div>
+                 <div className="flex justify-between text-xl font-black text-gray-900 mt-2">
+                   <span>Total Paid</span>
+                   <span>R {lastOrder.total.toFixed(2)}</span>
+                 </div>
+               </div>
+            </div>
           </div>
 
-          <button 
-            onClick={() => setCheckoutStep('cart')}
-            className="px-8 py-3 bg-gray-900 text-white rounded-full font-bold hover:bg-gray-800 transition-colors"
-          >
-            Back to Home
-          </button>
+          <div className="bg-amber-50 p-6 rounded-2xl text-left border border-amber-100 flex items-start gap-4 shadow-sm">
+             <div className="bg-amber-100 p-3 rounded-lg">
+                <Gift className="w-6 h-6 text-amber-600" />
+             </div>
+             <div>
+                <h3 className="font-bold text-amber-900 mb-1">Check your Inbox!</h3>
+                <p className="text-sm text-amber-800/80 mb-2">
+                  We've emailed you <strong>The Sumami Alchemy Cookbook</strong>. 
+                </p>
+                <p className="text-xs text-amber-600">
+                   (Check your Spam folder if you don't see it within 5 minutes)
+                </p>
+             </div>
+          </div>
+
+          <div className="text-center mt-8">
+            <button 
+              onClick={() => setCheckoutStep('cart')}
+              className="text-gray-400 font-medium hover:text-gray-900 transition-colors"
+            >
+              Back to Home
+            </button>
+          </div>
+
         </div>
       </div>
     );
@@ -263,7 +338,6 @@ const App: React.FC = () => {
         onUpdateQuantity={updateCartItemQuantity}
         onRemove={removeCartItem}
         onCheckout={startCheckout}
-        onWebCheckout={handleWebCheckout}
         shippingCost={SHIPPING_COST}
         freeShippingThreshold={0}
         discountAmount={discountAmount}
@@ -276,6 +350,13 @@ const App: React.FC = () => {
         onClose={() => setIsBuilderOpen(false)}
         onComplete={handleBuilderComplete}
         products={PRODUCTS}
+      />
+
+      {/* Legal Modal */}
+      <LegalModal 
+        isOpen={activePolicy !== null}
+        type={activePolicy}
+        onClose={() => setActivePolicy(null)}
       />
 
       {/* Yoco Payment Overlay */}
@@ -319,15 +400,28 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                  <input 
-                    type="email" 
-                    required 
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-amber-500 outline-none"
-                    value={customerDetails.email}
-                    onChange={e => setCustomerDetails({...customerDetails, email: e.target.value})}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <input 
+                      type="email" 
+                      required 
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-amber-500 outline-none"
+                      value={customerDetails.email}
+                      onChange={e => setCustomerDetails({...customerDetails, email: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                    <input 
+                      type="tel" 
+                      required 
+                      placeholder="e.g. 082 123 4567"
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-amber-500 outline-none"
+                      value={customerDetails.phone}
+                      onChange={e => setCustomerDetails({...customerDetails, phone: e.target.value})}
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -439,8 +533,8 @@ const App: React.FC = () => {
             </div>
             
             {/* Seal Floating */}
-            <div className="absolute bottom-10 right-10 hidden md:block animate-pulse">
-                <img src={ASSETS.seal} alt="Umami Seal" className="w-32 h-32 md:w-48 md:h-48 drop-shadow-2xl" />
+            <div className="absolute bottom-10 right-10 hidden md:block">
+                <img src={ASSETS.seal} alt="Premium Quality Seal" className="w-32 h-32 md:w-48 md:h-48 drop-shadow-2xl" />
             </div>
           </section>
 
@@ -455,7 +549,7 @@ const App: React.FC = () => {
           {/* Social Proof Strip */}
           <div className="bg-amber-50 py-10 border-b border-amber-100">
             <div className="container mx-auto px-4 flex flex-wrap justify-center gap-8 md:gap-16 opacity-70 grayscale hover:grayscale-0 transition-all duration-500">
-              {['Premium Quality', 'Locally Produced', 'No Artificial Preservatives', 'Hand Crafted'].map((item) => (
+              {['Premium Quality', 'Locally Produced', 'Fermented Soya Sauce', 'Hand Crafted'].map((item) => (
                 <div key={item} className="flex items-center gap-2 font-bold text-gray-700">
                   <Check className="w-5 h-5 text-amber-600" /> {item}
                 </div>
@@ -705,9 +799,9 @@ const App: React.FC = () => {
                 <div>
                   <h4 className="text-white font-bold mb-4">Legal</h4>
                   <ul className="space-y-2 text-sm">
-                    <li><a href="https://biznizart.co.za/privacy" className="hover:text-white">Privacy Policy</a></li>
-                    <li><a href="https://biznizart.co.za/terms" className="hover:text-white">Terms of Service</a></li>
-                    <li><a href="https://biznizart.co.za/shipping" className="hover:text-white">Shipping Policy</a></li>
+                    <li><button onClick={() => setActivePolicy('privacy')} className="hover:text-white transition-colors">Privacy Policy</button></li>
+                    <li><button onClick={() => setActivePolicy('terms')} className="hover:text-white transition-colors">Terms of Service</button></li>
+                    <li><button onClick={() => setActivePolicy('shipping')} className="hover:text-white transition-colors">Shipping Policy</button></li>
                   </ul>
                 </div>
               </div>
