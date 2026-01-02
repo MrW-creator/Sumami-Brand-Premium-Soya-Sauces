@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Plus, Minus, ShoppingBag, Trash2, Truck, Tag, AlertCircle, Gift } from 'lucide-react';
+import { X, Plus, Minus, ShoppingBag, Trash2, Truck, Tag, AlertCircle, Gift, Lock } from 'lucide-react';
 import { CartItem } from '../types';
 
 interface CartProps {
@@ -9,6 +9,7 @@ interface CartProps {
   onUpdateQuantity: (index: number, delta: number) => void;
   onRemove: (index: number) => void;
   onCheckout: () => void;
+  onAddRecommended: () => void;
   shippingCost: number;
   freeShippingThreshold: number;
   discountAmount?: number;
@@ -22,6 +23,7 @@ const Cart: React.FC<CartProps> = ({
   onUpdateQuantity, 
   onRemove, 
   onCheckout, 
+  onAddRecommended,
   shippingCost,
   freeShippingThreshold,
   discountAmount = 0,
@@ -58,10 +60,21 @@ const Cart: React.FC<CartProps> = ({
 
         {/* Nudge Banner for Mix & Match */}
         {needsNudge && (
-            <div className="bg-amber-100 p-3 px-5 text-sm text-amber-900 border-b border-amber-200 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 text-amber-600 mt-0.5" />
-                <div>
-                    <span className="font-bold">Almost there!</span> Add 1 more "3-Pack" (any flavour) to your cart and <span className="font-bold underline">save R150 instantly!</span>
+            <div className="bg-amber-100 p-3 px-5 text-sm text-amber-900 border-b border-amber-200">
+                <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0 text-amber-600 mt-0.5" />
+                    <div className="flex-1">
+                        <p className="mb-2">
+                           <span className="font-bold">Almost there!</span> Add 1 more "3-Pack" to save <span className="font-bold underline">R150 instantly!</span>
+                        </p>
+                        <button 
+                            onClick={onAddRecommended}
+                            className="text-xs bg-amber-200 hover:bg-amber-300 text-amber-900 px-3 py-1.5 rounded border border-amber-300 font-bold transition-colors flex items-center gap-1 shadow-sm w-full sm:w-auto justify-center"
+                        >
+                            <Plus className="w-3 h-3" />
+                            Add recommended flavour
+                        </button>
+                    </div>
                 </div>
             </div>
         )}
@@ -177,10 +190,15 @@ const Cart: React.FC<CartProps> = ({
               </div>
             </div>
 
+            <p className="text-center text-xs text-gray-400 font-medium italic mt-2 mb-3">
+              No gimmicks. No shortcuts. Just flavours people reorder.
+            </p>
+
             <button 
               onClick={onCheckout}
-              className="w-full py-4 bg-amber-600 text-white rounded-xl font-bold text-lg hover:bg-amber-700 transition-all shadow-lg active:scale-95"
+              className="w-full py-4 bg-amber-600 text-white rounded-xl font-bold text-lg hover:bg-amber-700 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
             >
+              <Lock className="w-5 h-5" />
               Secure Checkout
             </button>
           </div>

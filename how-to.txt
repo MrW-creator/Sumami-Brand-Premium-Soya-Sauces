@@ -1,3 +1,4 @@
+
 HOW TO LINK WOOCOMMERCE PRODUCTS TO THIS LANDING PAGE
 
 ================================================================================
@@ -141,7 +142,7 @@ When a customer buys 2 Packs on the Landing Page:
 **You do NOT need to install any discount plugins on WordPress.** The Landing Page handles the logic for you.
 
 ================================================================================
-10. PRE-DEPLOYMENT Q&A (IMPORTANT)
+10. PRE-DEPLOYMENT Q&A
 ================================================================================
 
 Q1) Since it is linked to my woocommerce site, must I update prices on the landing page?
@@ -167,39 +168,20 @@ plugin installed on your WordPress site.
 > ACTION: Open `constants.ts` and paste your Yoco Public Key into `YOCO_PUBLIC_KEY`.
 > IF YOU LEAVE IT EMPTY: The page will run in "Simulation Mode" (fake payments) for testing.
 
-Q4) How do I test the landing page and payment gateway?
-ANSWER:
-1. Log into your Yoco Business Portal > Developers > Keys.
-2. Copy your "Test Public Key" (starts with pk_test_...).
-3. Paste it into `constants.ts` inside `YOCO_PUBLIC_KEY`.
-4. Run the app.
-5. Use a Yoco Test Card Number (found in Yoco docs, usually 4242...) to pay.
-6. Check your WooCommerce Orders. You should see a new order appear instantly.
-7. Once verified, replace the Test Key with your "Live Public Key" (pk_live_...) to go real.
+================================================================================
+11. SETTING UP ORDER NOTIFICATIONS (orders@biznizart.co.za)
+================================================================================
+To ensure you receive an email every time a sale goes through, you must configure
+WooCommerce to send the "New Order" email to your specific address.
 
-Q5) What happens if the client buys odd numbers of 3-Packs (e.g. 3, 5, 7 packs)?
-ANSWER: 
-The "Mix & Match" discount works on PAIRS of 3-Packs.
-- 1st Pair (2 packs): Discount R150.
-- 3rd Pack (Odd one out): No Discount (Standard Price R315).
-- 2nd Pair (4 packs): Discount R300.
+1. Log into your WordPress Dashboard.
+2. Go to **WooCommerce > Settings > Emails**.
+3. Look for the email called **"New order"**.
+4. Click **Manage**.
+5. In the **Recipient(s)** field, enter your email address: 
+   `orders@biznizart.co.za`
+   *(If there is already an email there, add a comma, then your email).*
+6. Click **Save changes**.
 
-Example: Buying 3x 3-Packs
-Cost = (R315 x 3) - R150 Discount = R795.
-WooCommerce receives: R945 Subtotal minus R150 Fee = R795 Total. The math always balances.
-
-Q6) What happens when the client buys 6-Packs (e.g. 2x 6-Packs)?
-ANSWER:
-You do not need a discount logic for 6-Packs because the 6-Pack product price (R480) 
-is ALREADY the discounted bulk price.
-
-- 2x 3-Packs (Discounted) = R480.
-- 1x 6-Pack (Standard) = R480.
-
-So if a client buys 2x 6-Packs:
-- Landing Page: R480 x 2 = R960.
-- WooCommerce Product Price: R480.
-- WooCommerce Order: R480 x 2 = R960.
-
-There is no "Negative Fee" sent for 6-packs because the base price is already correct. 
-Everything stays mathematically consistent.
+Now, whenever the landing page creates an order, WooCommerce will instantly email 
+the invoice details to `orders@biznizart.co.za`.

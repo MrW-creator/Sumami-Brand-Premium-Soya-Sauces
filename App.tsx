@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download, Info } from 'lucide-react';
+import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download, Info, Mail } from 'lucide-react';
 import { PRODUCTS, BUNDLES, ASSETS, WC_CONFIG, COOKBOOK_DOWNLOAD_URL } from './constants';
 import { Product, CartItem, CustomerDetails } from './types';
 import Cart from './components/Cart';
@@ -94,6 +94,15 @@ const App: React.FC = () => {
     const productToAdd = { ...product, wcId: targetWcId };
     
     addToCart(productToAdd, 1, undefined, `${size}-Pack`, price);
+  };
+
+  // New handler for the Nudge CTA
+  const handleAddRecommended = () => {
+    // We recommend the bestseller: Garlic & Ginger
+    const recommended = PRODUCTS.find(p => p.id === 'garlic-ginger');
+    if (recommended) {
+      addSaucePack(recommended, 3);
+    }
   };
 
   const handleBundleClick = (bundle: Product) => {
@@ -241,7 +250,7 @@ Phone: ${customerDetails.phone}
 Total: R${lastOrder.total.toFixed(2)}
 Items: ${itemsList}
 
-Please confirm you received it!`;
+I have a question about my delivery...`;
 
     return `https://wa.me/27662434867?text=${encodeURIComponent(message)}`;
   };
@@ -257,23 +266,24 @@ Please confirm you received it!`;
               <Check className="w-10 h-10 text-green-600" />
             </div>
             <h1 className="text-3xl font-black text-gray-900 mb-2">Order Confirmed!</h1>
-            <p className="text-gray-500 mb-6">
-              Thank you, {customerDetails.firstName}. We've sent an invoice to <strong>{customerDetails.email}</strong>.
-            </p>
             
-            {/* WHATSAPP CTA */}
-            <a 
-              href={getWhatsAppLink()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-3 w-full bg-[#25D366] hover:bg-[#20bd5a] text-white py-4 rounded-xl font-bold shadow-lg shadow-green-200 hover:shadow-xl transition-all active:scale-95 mb-6"
-            >
-              <MessageCircle className="w-6 h-6" />
-              <span>Confirm Order on WhatsApp</span>
-            </a>
-
+            {/* EMAIL CONFIRMATION BOX */}
+            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                    <Mail className="w-5 h-5 text-blue-600" />
+                    <span className="font-bold text-blue-900">Receipt Sent</span>
+                </div>
+                <p className="text-blue-800 text-sm">
+                  We've emailed your invoice and order details to:<br/>
+                  <strong>{customerDetails.email}</strong>
+                </p>
+                <p className="text-xs text-blue-600 mt-2">
+                    (Our warehouse is already packing your order!)
+                </p>
+            </div>
+            
             {/* DIGITAL RECEIPT */}
-            <div className="bg-gray-50 rounded-xl p-6 text-left border border-gray-100">
+            <div className="bg-gray-50 rounded-xl p-6 text-left border border-gray-100 mb-6">
                <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-2">
                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Receipt</span>
                  <span className="text-xs font-bold text-gray-400">{new Date().toLocaleDateString()}</span>
@@ -307,6 +317,17 @@ Please confirm you received it!`;
                  </div>
                </div>
             </div>
+
+            {/* WHATSAPP SUPPORT CTA (SECONDARY) */}
+            <a 
+              href={getWhatsAppLink()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full text-gray-500 hover:text-green-600 font-medium py-2 transition-colors mb-6 text-sm"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Need help? Chat on WhatsApp</span>
+            </a>
           </div>
 
           <div className="bg-amber-50 p-6 rounded-2xl text-left border border-amber-100 shadow-sm flex flex-col gap-4">
@@ -379,6 +400,7 @@ Please confirm you received it!`;
         onUpdateQuantity={updateCartItemQuantity}
         onRemove={removeCartItem}
         onCheckout={startCheckout}
+        onAddRecommended={handleAddRecommended}
         shippingCost={SHIPPING_COST}
         freeShippingThreshold={0}
         discountAmount={discountAmount}
@@ -593,7 +615,7 @@ Please confirm you received it!`;
           {/* Social Proof Strip */}
           <div className="bg-amber-50 py-10 border-b border-amber-100">
             <div className="container mx-auto px-4 flex flex-wrap justify-center gap-8 md:gap-16 opacity-70 grayscale hover:grayscale-0 transition-all duration-500">
-              {['Premium Quality', 'Locally Produced', 'Fermented Soya Sauce', 'Hand Crafted'].map((item) => (
+              {['Brewed for depth — not diluted', 'Locally Produced', 'Fermented Soya Sauce', 'Hand Crafted'].map((item) => (
                 <div key={item} className="flex items-center gap-2 font-bold text-gray-700">
                   <Check className="w-5 h-5 text-amber-600" /> {item}
                 </div>
@@ -819,6 +841,14 @@ Please confirm you received it!`;
                              <span className="text-3xl font-black text-gray-900">R {bundle.price}</span>
                              <span className="text-lg text-gray-400 line-through mb-1">R {Math.round(bundle.price * 1.15)}</span>
                           </div>
+
+                          {/* COMPARISON ANCHOR TEXT - SUBTLE */}
+                          {bundle.id === 'starter-pack' && (
+                             <p className="text-xs text-gray-500 font-medium italic mb-4">
+                               "Cheaper than one takeaway. Used across dozens of meals."
+                             </p>
+                          )}
+
                           <button 
                             onClick={() => handleBundleClick(bundle)}
                             className={`w-full py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl active:scale-95 ${bundle.highlight ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-gray-900 hover:bg-gray-800 text-white'}`}
