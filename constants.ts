@@ -8,6 +8,14 @@ export const WC_CONFIG = {
 };
 
 // -----------------------------------------------------------------------------------------
+// YOCO PAYMENT CONFIGURATION
+// 1. Log into Yoco > Developers > Keys.
+// 2. Paste your Public Key below (e.g. 'pk_test_...' or 'pk_live_...').
+// 3. Leave empty ('') to use "Simulation Mode" (Fake payment for testing layout).
+// -----------------------------------------------------------------------------------------
+export const YOCO_PUBLIC_KEY = ''; 
+
+// -----------------------------------------------------------------------------------------
 // INSTRUCTIONS FOR IMAGES:
 // 1. Upload your product images to your WordPress Media Library at biznizart.co.za
 // 2. Copy the "File URL" for each image.

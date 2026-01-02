@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, CreditCard, Lock, CheckCircle } from 'lucide-react';
+import { Loader2, CreditCard, Lock, CheckCircle, AlertCircle } from 'lucide-react';
 import { CustomerDetails } from '../types';
+import { YOCO_PUBLIC_KEY } from '../constants';
 
 interface YocoCheckoutProps {
   amountInCents: number;
@@ -13,44 +14,60 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
   const [processing, setProcessing] = useState(false);
   const [sdkLoaded, setSdkLoaded] = useState(false);
 
-  // In a real implementation, you would load the script in index.html or here
-  // <script src="https://js.yoco.com/sdk/v1/yoco-sdk-web.js"></script>
-  
   useEffect(() => {
-    // Simulate SDK load time
-    const timer = setTimeout(() => setSdkLoaded(true), 500);
-    return () => clearTimeout(timer);
+    // Check if Yoco SDK is available on window
+    if (window.YocoSDK) {
+      setSdkLoaded(true);
+    } else {
+      // If no SDK in index.html, we just set loaded to true for simulation mode to work, 
+      // but warn in console if they provided a key.
+      if (YOCO_PUBLIC_KEY) {
+        console.error("Yoco SDK script missing in index.html");
+      }
+      setSdkLoaded(true);
+    }
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setProcessing(true);
 
-    // ------------------------------------------------------------------
-    // YOCO INTEGRATION LOGIC (SIMULATED)
-    // ------------------------------------------------------------------
-    // Real implementation:
-    // const yoco = new window.YocoSDK({ publicKey: 'YOUR_PUBLIC_KEY' });
-    // yoco.showPopup({
-    //   amountInCents: amountInCents,
-    //   currency: 'ZAR',
-    //   name: 'Sumami Brand',
-    //   description: 'Order #1234',
-    //   callback: (result: any) => {
-    //     if (result.error) {
-    //        handleError(result.error);
-    //     } else {
-    //        onSuccess(result.id);
-    //     }
-    //   }
-    // });
-    // ------------------------------------------------------------------
-
-    // Simulating a network request/payment processing
-    setTimeout(() => {
-      setProcessing(false);
-      onSuccess();
-    }, 2500);
+    if (YOCO_PUBLIC_KEY) {
+      // ------------------------------------------------------------------
+      // REAL PRODUCTION MODE
+      // ------------------------------------------------------------------
+      try {
+        const yoco = new window.YocoSDK({ publicKey: YOCO_PUBLIC_KEY });
+        yoco.showPopup({
+          amountInCents: amountInCents,
+          currency: 'ZAR',
+          name: 'Sumami Brand',
+          description: `Order for ${customer.firstName}`,
+          displayMethod: 'MANUAL',
+          callback: (result: any) => {
+            if (result.error) {
+               setProcessing(false);
+               alert("Payment Failed: " + result.error.message);
+            } else {
+               // Successful charge
+               onSuccess();
+            }
+          }
+        });
+      } catch (err) {
+        console.error("Yoco SDK Error", err);
+        setProcessing(false);
+        alert("Could not initialize Payment Gateway. Please refresh.");
+      }
+    } else {
+      // ------------------------------------------------------------------
+      // SIMULATION MODE (No Key Provided)
+      // ------------------------------------------------------------------
+      setTimeout(() => {
+        setProcessing(false);
+        onSuccess();
+      }, 2000);
+    }
   };
 
   return (
@@ -80,43 +97,69 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Card Number</label>
-              <div className="relative">
-                <input 
-                  type="text" 
-                  placeholder="0000 0000 0000 0000" 
-                  className="w-full border border-gray-300 rounded-lg py-2.5 pl-10 pr-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  required
-                />
-                <CreditCard className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Expiry</label>
-                <input 
-                  type="text" 
-                  placeholder="MM/YY" 
-                  className="w-full border border-gray-300 rounded-lg py-2.5 px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">CVC</label>
-                <div className="relative">
-                  <input 
-                    type="text" 
-                    placeholder="123" 
-                    className="w-full border border-gray-300 rounded-lg py-2.5 pl-10 pr-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    required
-                  />
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          {!YOCO_PUBLIC_KEY && (
+             <div className="mb-4 bg-yellow-50 text-yellow-800 text-xs p-3 rounded border border-yellow-200 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <div>
+                  <strong>Test Mode:</strong> No Money will be charged. <br/>
+                  Add <code>YOCO_PUBLIC_KEY</code> in constants.ts to go live.
                 </div>
-              </div>
-            </div>
+             </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            
+            {/* If using Real Yoco, the popup handles inputs. We just show a summary here or a 'Pay' button. 
+                But for UI consistency, we show dummy fields in Simulation mode, or hide them in Real mode?
+                Actually, Yoco Popup is an overlay. So we just need a button to trigger it.
+            */}
+            
+            {!YOCO_PUBLIC_KEY && (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Card Number (Simulated)</label>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      placeholder="0000 0000 0000 0000" 
+                      className="w-full border border-gray-300 rounded-lg py-2.5 pl-10 pr-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                      required
+                    />
+                    <CreditCard className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Expiry</label>
+                    <input 
+                      type="text" 
+                      placeholder="MM/YY" 
+                      className="w-full border border-gray-300 rounded-lg py-2.5 px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">CVC</label>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        placeholder="123" 
+                        className="w-full border border-gray-300 rounded-lg py-2.5 pl-10 pr-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                        required
+                      />
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {YOCO_PUBLIC_KEY && (
+              <p className="text-sm text-gray-600 mb-4">
+                Clicking pay will open the secure Yoco Payment Popup to complete your transaction.
+              </p>
+            )}
 
             <button
               type="submit"
@@ -132,7 +175,7 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
                 </>
               ) : (
                 <>
-                  Pay R {(amountInCents / 100).toFixed(2)}
+                  {YOCO_PUBLIC_KEY ? 'Proceed to Secure Payment' : `Pay R ${(amountInCents / 100).toFixed(2)}`}
                 </>
               )}
             </button>
