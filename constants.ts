@@ -122,7 +122,7 @@ export const BUNDLES: Product[] = [
     description: 'Complete your kitchen arsenal. One of every infusion. The ultimate gift for foodies.',
     price: 535, // Updated Price
     // PASTE YOUR IMAGE URL BELOW:
-    image: 'https://www.biznizart.co.za/wp-content/uploads/2026/01/7-bottle-gift-pack.png',
+    image: 'https://www.biznizart.co.za/wp-content/uploads/2026/01/SOYA-MIXED-FLAVOUR-7PACK.png',
     category: 'bundle',
     highlight: true
   }
