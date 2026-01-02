@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download, Info, Mail } from 'lucide-react';
+import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download, Info, Mail, Lock, BellRing, ArrowRight } from 'lucide-react';
 import { PRODUCTS, BUNDLES, ASSETS, WC_CONFIG, COOKBOOK_DOWNLOAD_URL } from './constants';
 import { Product, CartItem, CustomerDetails } from './types';
 import Cart from './components/Cart';
@@ -230,27 +230,36 @@ const App: React.FC = () => {
     // 2. Sync to Backend (Pass discount amount)
     syncToWooCommerce(customerDetails, cartItems, discountAmount);
 
-    // 3. Move to success and clear cart
+    // 3. Move to success, clear cart, AND scroll to top
     setCheckoutStep('success');
     setCartItems([]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Construct WhatsApp Message
   const getWhatsAppLink = () => {
     if (!lastOrder) return '';
     
-    const itemsList = lastOrder.items.map(i => 
-      `${i.quantity}x ${i.name} ${i.variantLabel ? `(${i.variantLabel})` : ''}`
-    ).join(', ');
+    // Create a simplified list for WhatsApp
+    const itemsSummary = lastOrder.items.map(i => 
+      `${i.quantity} x ${i.name.replace('Infused With ', '')}`
+    ).join('\n');
     
-    const message = `Hi Sumami Brand! 👋 I just placed an order. 
+    const message = `*ORDER #CONFIRMED - ACTIVATE TRACKING* 🚚
     
-Name: ${customerDetails.firstName} ${customerDetails.lastName}
-Phone: ${customerDetails.phone}
-Total: R${lastOrder.total.toFixed(2)}
-Items: ${itemsList}
+Customer: ${customerDetails.firstName} ${customerDetails.lastName}
+Order Total: R${lastOrder.total.toFixed(2)}
+    
+*Items Ordered:*
+${itemsSummary}
 
-I have a question about my delivery...`;
+------------------
+✅ *ACTION REQUIRED:*
+Hi Sumami Team! I am messaging to *activate Priority Tracking* for my order.
+
+Please add me to the *Sumami VIP List* on WhatsApp so I can receive my tracking number and future exclusive deals.
+
+📍 Delivery to: ${customerDetails.city}`;
 
     return `https://wa.me/27662434867?text=${encodeURIComponent(message)}`;
   };
@@ -318,18 +327,40 @@ I have a question about my delivery...`;
                </div>
             </div>
 
-            {/* WHATSAPP SUPPORT CTA (SECONDARY) */}
-            <a 
-              href={getWhatsAppLink()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full text-gray-500 hover:text-green-600 font-medium py-2 transition-colors mb-6 text-sm"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>Need help? Chat on WhatsApp</span>
-            </a>
+            {/* ACTIVATION STEP (WHATSAPP FEATURE) */}
+            <div className="bg-green-50 border-2 border-green-500 border-dashed rounded-2xl p-6 relative overflow-hidden mb-6">
+                <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg uppercase tracking-wider">
+                    Final Step
+                </div>
+                <div className="flex flex-col items-center">
+                    <div className="bg-white p-3 rounded-full shadow-sm mb-3">
+                        <BellRing className="w-8 h-8 text-green-600 animate-pulse" />
+                    </div>
+                    <h3 className="text-lg font-black text-gray-900 mb-1">Activate Priority Tracking</h3>
+                    <p className="text-xs text-gray-600 mb-4 max-w-xs mx-auto">
+                        Join our <span className="font-bold text-green-700">WhatsApp VIP List</span> to get your tracking number instantly and unlock future rewards.
+                    </p>
+                    
+                    <a 
+                      href={getWhatsAppLink()}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-green-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                      <span>Activate & Join VIP List</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </a>
+                    
+                    <div className="mt-3 flex items-center gap-2 text-[10px] text-gray-400 font-medium">
+                        <div className="w-2 h-2 rounded-full bg-yellow-400 animate-ping"></div>
+                        Status: Pending Activation
+                    </div>
+                </div>
+            </div>
           </div>
 
+          {/* BONUS DOWNLOAD */}
           <div className="bg-amber-50 p-6 rounded-2xl text-left border border-amber-100 shadow-sm flex flex-col gap-4">
              <div className="flex items-start gap-4">
                 <div className="bg-amber-100 p-3 rounded-lg">
@@ -440,7 +471,13 @@ I have a question about my delivery...`;
                &larr; Back to Shopping
             </button>
             <div className="bg-white rounded-2xl shadow-xl p-8">
-              <h2 className="text-2xl font-bold mb-6 border-b pb-4">Shipping Details</h2>
+              <div className="mb-6 border-b pb-4">
+                <h2 className="text-2xl font-bold text-gray-900 mb-1">Shipping Details</h2>
+                <p className="text-sm text-gray-500 flex items-center gap-1.5">
+                  <Lock className="w-3 h-3 text-green-600" /> 
+                  You’ll confirm payment on the next step.
+                </p>
+              </div>
               <form onSubmit={handleDetailsSubmit} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
