@@ -1,4 +1,5 @@
 
+
 HOW TO LINK WOOCOMMERCE PRODUCTS TO THIS LANDING PAGE
 
 ================================================================================
@@ -168,6 +169,21 @@ plugin installed on your WordPress site.
 > ACTION: Open `constants.ts` and paste your Yoco Public Key into `YOCO_PUBLIC_KEY`.
 > IF YOU LEAVE IT EMPTY: The page will run in "Simulation Mode" (fake payments) for testing.
 
+Q4) In Netlify/Vercel, do I add my main domain 'biznizart.co.za'?
+ANSWER: 🛑 NO! DO NOT DO THIS! 🛑
+If you add your main domain `biznizart.co.za` to Netlify or Vercel, it will conflict
+with your existing WordPress hosting. Your main website will go down.
+
+You must use a **SUBDOMAIN**.
+Examples of safe subdomains:
+- `promo.biznizart.co.za`
+- `shop.biznizart.co.za`
+- `deals.biznizart.co.za`
+
+When adding the domain in Netlify/Vercel, type `promo.biznizart.co.za`. 
+Then go to your DNS provider (where you bought the domain) and create a CNAME record
+pointing `promo` to Netlify/Vercel.
+
 ================================================================================
 11. SETTING UP ORDER NOTIFICATIONS (orders@biznizart.co.za)
 ================================================================================
@@ -185,3 +201,61 @@ WooCommerce to send the "New Order" email to your specific address.
 
 Now, whenever the landing page creates an order, WooCommerce will instantly email 
 the invoice details to `orders@biznizart.co.za`.
+
+================================================================================
+12. DEPLOYMENT (GETTING IT ONLINE)
+================================================================================
+Since you are syncing your code to GitHub, the best platforms to host this 
+landing page are **Vercel** (vercel.com) or **Netlify** (netlify.com).
+
+Both are free for this type of project, incredibly fast, and offer automatic 
+HTTPS (the secure lock icon) for free.
+
+**My Recommendation: Vercel**
+(It is generally faster for React applications and connects seamlessly with GitHub).
+
+**Step-by-Step Deployment:**
+
+1. **Sign Up:** Go to Vercel.com and sign up using your **GitHub** account.
+2. **Import Project:** Click "Add New Project".
+3. **Select Repo:** You will see "Sumami-Landing-Page" (or your repo name) in the list. Click **Import**.
+4. **Configure:** 
+   - Framework Preset: It should auto-detect "Vite".
+   - If it asks for Build Command: `npm run build`
+   - If it asks for Output Directory: `dist`
+5. **Deploy:** Click **Deploy**.
+
+Within 1-2 minutes, Vercel will give you a live URL (e.g., `sumami-brand.vercel.app`).
+
+**Connecting Your Domain (e.g. promo.biznizart.co.za):**
+1. In Vercel, go to Settings > Domains.
+2. Type the SUBDOMAIN you want to use (e.g., `promo.biznizart.co.za`).
+   *DO NOT USE JUST biznizart.co.za*
+3. Vercel will show you a "CNAME Record" value (usually `cname.vercel-dns.com`).
+4. Log into your Domain Host (where you manage biznizart.co.za).
+5. Add that CNAME record to your DNS settings.
+
+================================================================================
+13. TROUBLESHOOTING: BLANK SCREEN ON VERCEL
+================================================================================
+If you see a blank screen after deploying, it is 99% likely due to the first point below.
+
+**A) Missing Script Tag (Most Likely Cause)**
+Browser Issue: Your `index.html` file might be missing the line that actually loads your React code.
+Solution: Ensure `index.html` has this line before the closing `</body>` tag:
+`<script type="module" src="./index.tsx"></script>`
+*I have already applied this fix in the code update.*
+
+**B) Output Directory (Build Settings)**
+Vercel Issue: Vercel looks for a folder called `dist` by default for Vite projects. 
+If your project is using a different name (like `build`), Vercel serves an empty folder.
+Check Vercel Settings > Build & Development > Output Directory. It should be `dist`.
+
+**C) Base Path / Routing**
+If your asset paths (images/scripts) are broken (404 errors in the browser console), 
+it might be because the app expects to be at the root `/` but is serving assets relatively.
+The fix I applied to `index.html` (using `./index.tsx`) usually resolves this for standard deployments.
+
+**D) Missing Dependencies**
+If you see "Module not found" errors in the Vercel Logs, ensure you have a `package.json` file 
+uploaded to GitHub that lists `react`, `react-dom`, `lucide-react`, and `vite`.

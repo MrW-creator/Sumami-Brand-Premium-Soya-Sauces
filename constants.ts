@@ -13,7 +13,7 @@ export const WC_CONFIG = {
 // 2. Paste your Public Key below (e.g. 'pk_test_...' or 'pk_live_...').
 // 3. Leave empty ('') to use "Simulation Mode" (Fake payment for testing layout).
 // -----------------------------------------------------------------------------------------
-export const YOCO_PUBLIC_KEY = ''; 
+export const YOCO_PUBLIC_KEY = 'pk_test_7edcb7cdmW93zGPed3a4'; 
 
 // -----------------------------------------------------------------------------------------
 // DOWNLOAD LINKS
