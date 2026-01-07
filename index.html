@@ -1,10 +1,31 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
-    <meta name="description" content="Unlock the Fifth Taste. Premium soya sauces infused with authentic South African flavours. Free Shipping on all bundles." />
-    <title>Sumami Brand - Premium Soya Sauces</title>
+    
+    <!-- SEO & Search Engine Crawlability -->
+    <title>Sumami Brand - Premium Infused Soya Sauces | Shop Online</title>
+    <meta name="description" content="Unlock the Fifth Taste with Sumami Brand. Handcrafted soya sauces infused with Garlic, Ginger, Chili, and more. Free Shipping Nationwide in South Africa." />
+    <meta name="keywords" content="soya sauce, artisanal sauce, sumami, cooking gifts, south africa food, marinade, stir fry, yoco payment, handcrafted sauce">
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="Sumami Brand" />
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://sumamibrand.co.za/" />
+    <meta property="og:title" content="Sumami Brand - Unlock the Fifth Taste" />
+    <meta property="og:description" content="Premium infused soya sauces. Buy 2 Get 1 Free offers available. Voted Best Artisan Sauce 2024." />
+    <meta property="og:image" content="https://www.biznizart.co.za/wp-content/uploads/2026/01/SOYA-MIXED-FLAVOUR-7PACK.png" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://sumamibrand.co.za/" />
+    <meta property="twitter:title" content="Sumami Brand - Premium Soya Sauces" />
+    <meta property="twitter:description" content="Handcrafted in SA. Free Shipping on all bundles." />
+    <meta property="twitter:image" content="https://www.biznizart.co.za/wp-content/uploads/2026/01/SOYA-MIXED-FLAVOUR-7PACK.png" />
+
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3502/3502601.png" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://js.yoco.com/sdk/v1/yoco-sdk-web.js"></script>
@@ -16,6 +37,30 @@
       @media screen and (max-width: 768px) {
         input, select, textarea {
           font-size: 16px;
+        }
+      }
+
+      /* PRINT STYLES for Admin Invoice */
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        #printable-invoice, #printable-invoice * {
+          visibility: visible;
+        }
+        #printable-invoice {
+          position: fixed;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          background: white;
+          padding: 20px;
+          z-index: 9999;
+          overflow: visible;
+        }
+        .no-print {
+          display: none !important;
         }
       }
     </style>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, ShoppingBag, Trash2, Truck, Tag, AlertCircle, Gift, Lock, ArrowRight } from 'lucide-react';
 import { CartItem } from '../types';
@@ -9,11 +10,15 @@ interface CartProps {
   onUpdateQuantity: (index: number, delta: number) => void;
   onRemove: (index: number) => void;
   onCheckout: () => void;
-  onAddRecommended: () => void;
+  onAddRecommended: (variant: '3-Pack' | '6-Pack') => void;
+  onOpenBonusSelector: (variant: '3-Pack' | '6-Pack') => void;
   shippingCost: number;
   freeShippingThreshold: number;
   discountAmount?: number;
-  packsOf3Count?: number;
+  paid3Packs?: number;
+  paid6Packs?: number;
+  missingBonuses3?: number;
+  missingBonuses6?: number;
 }
 
 const Cart: React.FC<CartProps> = ({ 
@@ -24,20 +29,25 @@ const Cart: React.FC<CartProps> = ({
   onRemove, 
   onCheckout, 
   onAddRecommended,
+  onOpenBonusSelector,
   shippingCost,
-  freeShippingThreshold,
-  discountAmount = 0,
-  packsOf3Count = 0
+  paid3Packs = 0,
+  paid6Packs = 0,
+  missingBonuses3 = 0,
+  missingBonuses6 = 0
 }) => {
   const [isNudgeDismissed, setIsNudgeDismissed] = useState(false);
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const total = subtotal - discountAmount + shippingCost;
+  const total = subtotal + shippingCost;
   
-  // Calculate if we need to nudge the user to add one more 3-pack
-  // If packsOf3Count is odd (1, 3, 5...), they are missing out on a discount for the unpaired one.
-  const needsNudge = packsOf3Count > 0 && packsOf3Count % 2 !== 0;
+  // Logic: Priority -> Claim 6, Claim 3, Upsell 6, Upsell 3.
+  let nudgeType: 'claim-6' | 'claim-3' | 'upsell-6' | 'upsell-3' | null = null;
 
-  // Reset dismissal if cart becomes empty or if they add the item (state changes)
+  if (missingBonuses6 > 0) nudgeType = 'claim-6';
+  else if (missingBonuses3 > 0) nudgeType = 'claim-3';
+  else if (paid6Packs > 0 && paid6Packs % 2 !== 0) nudgeType = 'upsell-6';
+  else if (paid3Packs > 0 && paid3Packs % 2 !== 0) nudgeType = 'upsell-3';
+
   useEffect(() => {
     if (items.length === 0) {
       setIsNudgeDismissed(false);
@@ -66,32 +76,49 @@ const Cart: React.FC<CartProps> = ({
           </button>
         </div>
 
-        {/* Compact Nudge Banner (Dismissible) */}
-        {needsNudge && !isNudgeDismissed && (
+        {/* NUDGES */}
+        {(nudgeType === 'claim-6' || nudgeType === 'claim-3') && (
+            <div className="bg-green-100 px-4 py-3 text-xs text-green-900 border-b border-green-200 flex items-center justify-between gap-3 animate-in slide-in-from-top-2 duration-300 shadow-inner">
+                <div className="flex items-center gap-2 flex-1">
+                    <div className="bg-green-200 p-1.5 rounded-full flex-shrink-0 animate-pulse">
+                      <Gift className="w-3.5 h-3.5 text-green-700" />
+                    </div>
+                    <span className="leading-tight font-medium">
+                       You have <strong>{nudgeType === 'claim-6' ? missingBonuses6 : missingBonuses3} FREE</strong> {nudgeType === 'claim-6' ? '6-Pack' : '3-Pack'}(s) waiting!
+                    </span>
+                </div>
+                <button 
+                  onClick={() => onOpenBonusSelector(nudgeType === 'claim-6' ? '6-Pack' : '3-Pack')}
+                  className="whitespace-nowrap bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded shadow-sm font-bold transition-colors flex items-center gap-1 animate-pulse"
+                >
+                   Select Flavour
+                </button>
+            </div>
+        )}
+
+        {(nudgeType === 'upsell-6' || nudgeType === 'upsell-3') && !isNudgeDismissed && (
             <div className="bg-amber-100 px-4 py-3 text-xs text-amber-900 border-b border-amber-200 flex items-center justify-between gap-3 animate-in slide-in-from-top-2 duration-300 shadow-inner">
                 <div className="flex items-center gap-2 flex-1">
-                    <div className="bg-amber-200 p-1.5 rounded-full flex-shrink-0 animate-pulse">
-                      <AlertCircle className="w-3.5 h-3.5 text-amber-700" />
+                    <div className="bg-amber-200 p-1.5 rounded-full flex-shrink-0">
+                      <Gift className="w-3.5 h-3.5 text-amber-700" />
                     </div>
                     <span className="leading-tight">
-                       Add 1 more "3-Pack" to save <span className="font-bold underline decoration-amber-500 decoration-2">R150.00</span> instantly!
+                       Add 1 more "{nudgeType === 'upsell-6' ? '6-Pack' : '3-Pack'}" to unlock a <span className="font-bold underline decoration-amber-500 decoration-2">FREE {nudgeType === 'upsell-6' ? '6-Pack' : '3-Pack'}</span>!
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button 
                       onClick={() => {
-                        onAddRecommended();
-                        // Optional: Dismiss immediately after adding so it doesn't persist until re-render
+                        onAddRecommended(nudgeType === 'upsell-6' ? '6-Pack' : '3-Pack');
                         setIsNudgeDismissed(true); 
                       }}
                       className="whitespace-nowrap bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded shadow-sm font-bold transition-colors flex items-center gap-1"
                   >
-                      <Plus className="w-3 h-3" /> Add
+                      <Plus className="w-3 h-3" /> Select Pack
                   </button>
                   <button 
                     onClick={() => setIsNudgeDismissed(true)}
                     className="text-amber-500 hover:text-amber-800 p-1.5 rounded hover:bg-amber-200 transition-colors"
-                    aria-label="Dismiss suggestion"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -114,22 +141,29 @@ const Cart: React.FC<CartProps> = ({
             </div>
           ) : (
             items.map((item, index) => (
-              <div key={`${item.id}-${index}`} className="flex gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+              <div key={`${item.id}-${index}`} className={`flex gap-3 p-3 rounded-xl border shadow-sm transition-all group ${item.isBonus ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-100'}`}>
                 <div className="w-16 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 relative">
                   <img src={item.image} alt={item.name} className="w-full h-full object-cover mix-blend-multiply" />
+                  {item.isBonus && (
+                    <div className="absolute inset-x-0 bottom-0 bg-amber-600 text-white text-[8px] font-bold text-center py-0.5 uppercase">
+                      Free Gift
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex-1 flex flex-col justify-between">
                   <div>
                     <div className="flex justify-between items-start">
                       <h3 className="font-bold text-gray-900 text-sm line-clamp-2 leading-tight pr-4">{item.name}</h3>
-                      <button 
-                        onClick={() => onRemove(index)}
-                        className="text-gray-300 hover:text-red-500 transition-colors -mt-1 -mr-1 p-1 opacity-0 group-hover:opacity-100"
-                        aria-label="Remove item"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {!item.isBonus && (
+                        <button 
+                          onClick={() => onRemove(index)}
+                          className="text-gray-300 hover:text-red-500 transition-colors -mt-1 -mr-1 p-1 opacity-0 group-hover:opacity-100"
+                          aria-label="Remove item"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                     
                     {item.variantLabel && (
@@ -146,22 +180,28 @@ const Cart: React.FC<CartProps> = ({
                   </div>
 
                   <div className="flex justify-between items-end mt-2">
-                    <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-1.5 py-0.5 border border-gray-200">
-                      <button 
-                        onClick={() => onUpdateQuantity(index, -1)}
-                        className="p-1 hover:bg-white rounded transition-colors"
-                      >
-                        <Minus className="w-3 h-3 text-gray-600" />
-                      </button>
+                    <div className={`flex items-center gap-2 rounded-lg px-1.5 py-0.5 border ${item.isBonus ? 'border-amber-200 bg-amber-100' : 'bg-gray-50 border-gray-200'}`}>
+                      {!item.isBonus && (
+                        <button 
+                          onClick={() => onUpdateQuantity(index, -1)}
+                          className="p-1 hover:bg-white rounded transition-colors"
+                        >
+                          <Minus className="w-3 h-3 text-gray-600" />
+                        </button>
+                      )}
                       <span className="text-xs font-bold w-4 text-center text-gray-900">{item.quantity}</span>
-                      <button 
-                        onClick={() => onUpdateQuantity(index, 1)}
-                        className="p-1 hover:bg-white rounded transition-colors"
-                      >
-                        <Plus className="w-3 h-3 text-gray-600" />
-                      </button>
+                      {!item.isBonus && (
+                        <button 
+                          onClick={() => onUpdateQuantity(index, 1)}
+                          className="p-1 hover:bg-white rounded transition-colors"
+                        >
+                          <Plus className="w-3 h-3 text-gray-600" />
+                        </button>
+                      )}
                     </div>
-                    <p className="font-bold text-gray-900 text-sm">R {(item.price * item.quantity).toFixed(2)}</p>
+                    <p className={`font-bold text-sm ${item.isBonus ? 'text-amber-600' : 'text-gray-900'}`}>
+                      {item.price === 0 ? 'FREE' : `R ${(item.price * item.quantity).toFixed(2)}`}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -188,11 +228,10 @@ const Cart: React.FC<CartProps> = ({
                 <span>R {subtotal.toFixed(2)}</span>
               </div>
               
-              {/* Discount Line Item */}
-              {discountAmount > 0 && (
+              {items.some(i => i.isBonus) && (
                 <div className="flex justify-between text-amber-600 font-bold text-sm animate-pulse">
-                   <span className="flex items-center gap-1"><Tag className="w-3 h-3" /> Bulk Savings</span>
-                   <span>- R {discountAmount.toFixed(2)}</span>
+                   <span className="flex items-center gap-1"><Gift className="w-3 h-3" /> Bonus Item</span>
+                   <span>FREE</span>
                 </div>
               )}
 
@@ -208,12 +247,30 @@ const Cart: React.FC<CartProps> = ({
             </div>
 
             <button 
-              onClick={onCheckout}
-              className="w-full py-3.5 bg-gray-900 text-white rounded-xl font-bold text-base hover:bg-black transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 mt-2"
+              onClick={(missingBonuses6 > 0 || missingBonuses3 > 0) ? () => onOpenBonusSelector(missingBonuses6 > 0 ? '6-Pack' : '3-Pack') : onCheckout}
+              className={`w-full py-3.5 rounded-xl font-bold text-base hover:shadow-lg transition-all shadow active:scale-95 flex items-center justify-center gap-2 mt-2 
+                 ${(missingBonuses6 > 0 || missingBonuses3 > 0) ? 'bg-amber-600 hover:bg-amber-700 text-white animate-pulse' : 'bg-gray-900 hover:bg-black text-white'}
+              `}
             >
-              <Lock className="w-4 h-4" />
-              Secure Checkout
-              <ArrowRight className="w-4 h-4 opacity-50" />
+              {(missingBonuses6 > 0 || missingBonuses3 > 0) ? (
+                  <>
+                     <Gift className="w-4 h-4" />
+                     Select Free Gift to Checkout
+                  </>
+              ) : (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    Secure Checkout
+                    <ArrowRight className="w-4 h-4 opacity-50" />
+                  </>
+              )}
+            </button>
+            
+            <button
+                onClick={onClose}
+                className="w-full py-3 rounded-xl font-bold text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors text-sm"
+            >
+                Continue Shopping
             </button>
           </div>
         )}

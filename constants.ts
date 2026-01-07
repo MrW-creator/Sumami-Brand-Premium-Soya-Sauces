@@ -14,9 +14,10 @@ export const SUPABASE_CONFIG = {
 
 // -----------------------------------------------------------------------------------------
 // ADMIN DASHBOARD SECURITY
-// Change this to a 4-6 digit PIN of your choice.
+// Change this to your preferred admin password.
+// Supports letters, numbers, and special characters.
 // -----------------------------------------------------------------------------------------
-export const ADMIN_PIN = '1234';
+export const ADMIN_PIN = 'admin123';
 
 // -----------------------------------------------------------------------------------------
 // YOCO PAYMENT CONFIGURATION
@@ -31,20 +32,44 @@ export const YOCO_PUBLIC_KEY = 'pk_test_7edcb7cdmW93zGPed3a4';
 export const COOKBOOK_DOWNLOAD_URL = 'https://drive.google.com/file/d/YOUR_LINK_HERE/view?usp=sharing'; 
 
 // -----------------------------------------------------------------------------------------
+// IMAGE HOSTING CONFIGURATION
+// Currently, images are loaded from the old WordPress site.
+// TO MOVE TO SUPABASE/WEBP:
+// 1. Convert your images to .webp (smaller & faster).
+// 2. Upload them to a Supabase Storage bucket named 'products'.
+// 3. Update the BASE_URL below to your Supabase Public URL.
+// -----------------------------------------------------------------------------------------
+
+// CURRENT: WordPress Hotlinks
+const WP_BASE_2025 = 'https://www.biznizart.co.za/wp-content/uploads/2025/12';
+const WP_BASE_2026 = 'https://www.biznizart.co.za/wp-content/uploads/2026/01';
+
+// FUTURE: Supabase Example (Uncomment and use this structure later)
+// const BASE_URL = 'https://[PROJECT-ID].supabase.co/storage/v1/object/public/products';
+
+export const ASSETS = {
+  heroBg: `${WP_BASE_2026}/promote-fenugreek.png`,
+  lifestyle: `${WP_BASE_2026}/group-table.png`, 
+  seal: 'https://cdn-icons-png.flaticon.com/512/3502/3502601.png',
+  cookbook: `${WP_BASE_2026}/Sumami-cookbook.png`,
+  // Using direct SVG for crisp rendering on all screens
+  yoco: 'https://upload.wikimedia.org/wikipedia/commons/1/16/Yoco_Logo.svg'
+};
+
+// -----------------------------------------------------------------------------------------
 // PRODUCTS
 // SKU field added for Spreadsheet/Database identification.
-// You can edit these SKUs to match your actual WooCommerce IDs (e.g., '10452').
 // -----------------------------------------------------------------------------------------
 
 export const PRODUCTS: Product[] = [
   {
     id: 'garlic-ginger',
-    sku: 'SUM-001', // Edit this to match your WC ID
+    sku: 'SUM-001',
     name: 'Infused With Garlic & Ginger',
     subName: 'Sumami Brand Soya Sauce',
     description: 'The perfect balance of aromatic garlic and zesty ginger. Ideal for stir-frys and marinades.',
     price: 55, 
-    image: 'https://www.biznizart.co.za/wp-content/uploads/2025/12/garlic-ginger.png',
+    image: `${WP_BASE_2025}/garlic-ginger.png`,
     category: 'sauce'
   },
   {
@@ -54,7 +79,7 @@ export const PRODUCTS: Product[] = [
     subName: 'Sumami Brand Soya Sauce',
     description: 'A refreshing burst of citrus paired with earthy coriander. Perfect for fish and salads.',
     price: 55,
-    image: 'https://www.biznizart.co.za/wp-content/uploads/2025/12/citrus-coriander.png',
+    image: `${WP_BASE_2025}/citrus-coriander.png`,
     category: 'sauce'
   },
   {
@@ -64,7 +89,7 @@ export const PRODUCTS: Product[] = [
     subName: 'Sumami Brand Soya Sauce',
     description: 'For those who crave heat. A spicy kick that elevates any dish without overpowering the umami.',
     price: 55,
-    image: 'https://www.biznizart.co.za/wp-content/uploads/2025/12/Chillies.png',
+    image: `${WP_BASE_2025}/Chillies.png`,
     category: 'sauce'
   },
   {
@@ -74,7 +99,7 @@ export const PRODUCTS: Product[] = [
     subName: 'Sumami Brand Soya Sauce',
     description: 'Deep, rich, and meaty. Enhance your stews, gravies, and slow-cooked meals.',
     price: 55,
-    image: 'https://www.biznizart.co.za/wp-content/uploads/2025/12/beef-stock.png',
+    image: `${WP_BASE_2025}/beef-stock.png`,
     category: 'sauce'
   },
   {
@@ -84,7 +109,7 @@ export const PRODUCTS: Product[] = [
     subName: 'Sumami Brand Soya Sauce',
     description: 'A classic combination. Sharp cracked pepper meets natural sea salt.',
     price: 55,
-    image: 'https://www.biznizart.co.za/wp-content/uploads/2025/12/black-pepper-and-sea-salt.png',
+    image: `${WP_BASE_2025}/black-pepper-and-sea-salt.png`,
     category: 'sauce'
   },
   {
@@ -94,7 +119,7 @@ export const PRODUCTS: Product[] = [
     subName: 'Sumami Brand Soya Sauce',
     description: 'Nutty, toasted notes with a mustard tang. incredible on sushi and roasted vegetables.',
     price: 55,
-    image: 'https://www.biznizart.co.za/wp-content/uploads/2025/12/sesame-mustard.png',
+    image: `${WP_BASE_2025}/sesame-mustard.png`,
     category: 'sauce'
   },
   {
@@ -104,7 +129,7 @@ export const PRODUCTS: Product[] = [
     subName: 'Sumami Brand Soya Sauce',
     description: 'A warm, nutty profile with hints of maple. Transforms curries and stews into rich, complex dishes.',
     price: 55,
-    image: 'https://www.biznizart.co.za/wp-content/uploads/2025/12/fenugreek.png',
+    image: `${WP_BASE_2025}/fenugreek.png`,
     category: 'sauce'
   }
 ];
@@ -117,7 +142,7 @@ export const BUNDLES: Product[] = [
     subName: 'Build Your Own 3-Pack',
     description: 'Choose your top 3 flavours. The perfect introduction to Sumami Brand.',
     price: 315, 
-    image: 'https://www.biznizart.co.za/wp-content/uploads/2025/12/sumami-and-stews.png',
+    image: `${WP_BASE_2025}/sumami-and-stews.png`,
     category: 'bundle'
   },
   {
@@ -127,15 +152,8 @@ export const BUNDLES: Product[] = [
     subName: 'Full Range (7 Bottles)',
     description: 'Complete your kitchen arsenal. One of every infusion. The ultimate gift for foodies.',
     price: 535, 
-    image: 'https://www.biznizart.co.za/wp-content/uploads/2026/01/SOYA-MIXED-FLAVOUR-7PACK.png',
+    image: `${WP_BASE_2026}/SOYA-MIXED-FLAVOUR-7PACK.png`,
     category: 'bundle',
     highlight: true
   }
 ];
-
-export const ASSETS = {
-  heroBg: 'https://www.biznizart.co.za/wp-content/uploads/2026/01/promote-fenugreek.png',
-  lifestyle: 'https://www.biznizart.co.za/wp-content/uploads/2026/01/group-table.png', 
-  seal: 'https://cdn-icons-png.flaticon.com/512/3502/3502601.png',
-  cookbook: 'https://www.biznizart.co.za/wp-content/uploads/2026/01/Sumami-cookbook.png'
-};

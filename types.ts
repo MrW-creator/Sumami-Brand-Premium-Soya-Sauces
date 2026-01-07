@@ -15,6 +15,7 @@ export interface CartItem extends Product {
   quantity: number;
   selectedOptions?: string[]; // For bundle selections
   variantLabel?: string; // e.g. "3-Pack" or "6-Pack"
+  isBonus?: boolean; // New flag for "Buy 2 Get 1 Free" items
 }
 
 export interface CustomerDetails {
@@ -25,6 +26,18 @@ export interface CustomerDetails {
   address: string;
   city: string;
   zipCode: string;
+}
+
+export interface StoreSettings {
+  id?: number;
+  yoco_test_key: string;
+  yoco_live_key: string;
+  is_live_mode: boolean;
+  facebook_url?: string;
+  instagram_url?: string;
+  pinterest_url?: string;
+  youtube_url?: string;
+  tiktok_url?: string;
 }
 
 // Window interface for Yoco SDK

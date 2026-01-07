@@ -1,18 +1,25 @@
+
 import React, { useState, useEffect } from 'react';
-import { Loader2, CreditCard, Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, CreditCard, Lock, CheckCircle, AlertCircle, ShieldCheck } from 'lucide-react';
 import { CustomerDetails } from '../types';
-import { YOCO_PUBLIC_KEY } from '../constants';
+import { ASSETS } from '../constants';
 
 interface YocoCheckoutProps {
   amountInCents: number;
   onSuccess: () => void;
   onCancel: () => void;
   customer: CustomerDetails;
+  publicKey: string; // Dynamic Key Passed from App
 }
 
-const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, onCancel, customer }) => {
+const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, onCancel, customer, publicKey }) => {
   const [processing, setProcessing] = useState(false);
   const [sdkLoaded, setSdkLoaded] = useState(false);
+
+  // Determine mode based on Key string content
+  const isLive = publicKey && publicKey.startsWith('pk_live');
+  const isTest = publicKey && publicKey.startsWith('pk_test');
+  const isSimulation = !publicKey;
 
   useEffect(() => {
     // Check if Yoco SDK is available on window
@@ -21,23 +28,23 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
     } else {
       // If no SDK in index.html, we just set loaded to true for simulation mode to work, 
       // but warn in console if they provided a key.
-      if (YOCO_PUBLIC_KEY) {
+      if (publicKey) {
         console.error("Yoco SDK script missing in index.html");
       }
       setSdkLoaded(true);
     }
-  }, []);
+  }, [publicKey]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setProcessing(true);
 
-    if (YOCO_PUBLIC_KEY) {
+    if (publicKey) {
       // ------------------------------------------------------------------
-      // REAL PRODUCTION MODE
+      // REAL PRODUCTION / TEST MODE
       // ------------------------------------------------------------------
       try {
-        const yoco = new window.YocoSDK({ publicKey: YOCO_PUBLIC_KEY });
+        const yoco = new window.YocoSDK({ publicKey: publicKey });
         yoco.showPopup({
           amountInCents: amountInCents,
           currency: 'ZAR',
@@ -71,50 +78,49 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative transform transition-all scale-100">
         
         {/* Header */}
-        <div className="bg-blue-600 p-4 flex justify-between items-center text-white">
+        <div className={`p-4 flex justify-between items-center text-white ${isLive ? 'bg-green-700' : 'bg-gray-900'}`}>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-lg tracking-wide">Yoco</span>
-            <span className="bg-blue-500 text-xs px-2 py-0.5 rounded text-blue-100">Secure</span>
+            <ShieldCheck className="w-5 h-5" />
+            <span className="font-bold text-lg tracking-wide">Secure Checkout</span>
           </div>
-          <button onClick={onCancel} className="text-blue-100 hover:text-white text-sm">
+          <button onClick={onCancel} className="text-white/80 hover:text-white text-sm font-medium">
             Cancel
           </button>
         </div>
 
         {/* Content */}
         <div className="p-6">
-          <div className="flex justify-between items-end mb-6 border-b pb-4">
+          <div className="flex justify-between items-end mb-6 border-b border-gray-100 pb-4">
             <div>
-              <p className="text-gray-500 text-sm">Total Amount</p>
-              <h3 className="text-3xl font-bold text-gray-900">R {(amountInCents / 100).toFixed(2)}</h3>
+              <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total to Pay</p>
+              <h3 className="text-3xl font-black text-gray-900">R {(amountInCents / 100).toFixed(2)}</h3>
             </div>
             <div className="text-right">
-               <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Yoco_Logo.svg/1200px-Yoco_Logo.svg.png" alt="Yoco" className="h-6 opacity-50" />
+               <div className="flex flex-col items-end gap-1">
+                  <img src={ASSETS.yoco} alt="Yoco" className="h-6" />
+                  <span className="text-[10px] text-gray-400 font-medium">Official Partner</span>
+               </div>
             </div>
           </div>
 
-          {!YOCO_PUBLIC_KEY && (
-             <div className="mb-4 bg-yellow-50 text-yellow-800 text-xs p-3 rounded border border-yellow-200 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {!isLive && (
+             <div className="mb-4 bg-amber-50 text-amber-900 text-xs p-3 rounded-lg border border-amber-200 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600" />
                 <div>
-                  <strong>Test Mode:</strong> No Money will be charged. <br/>
-                  Add <code>YOCO_PUBLIC_KEY</code> in constants.ts to go live.
+                  <strong>{isSimulation ? 'Simulation Mode' : 'Test Mode Active'}</strong> 
+                  <p className="mt-0.5 opacity-90">No real money will be charged.</p>
                 </div>
              </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             
-            {/* If using Real Yoco, the popup handles inputs. We just show a summary here or a 'Pay' button. 
-                But for UI consistency, we show dummy fields in Simulation mode, or hide them in Real mode?
-                Actually, Yoco Popup is an overlay. So we just need a button to trigger it.
-            */}
-            
-            {!YOCO_PUBLIC_KEY && (
+            {/* Simulation Fields */}
+            {isSimulation && (
               <>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Card Number (Simulated)</label>
@@ -155,17 +161,16 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
               </>
             )}
 
-            {YOCO_PUBLIC_KEY && (
-              <p className="text-sm text-gray-600 mb-4">
-                Clicking pay will open the secure Yoco Payment Popup to complete your transaction.
-              </p>
-            )}
-
+            {/* Payment Button with Dynamic Color */}
             <button
               type="submit"
               disabled={processing || !sdkLoaded}
-              className={`w-full mt-6 py-3 rounded-lg font-bold text-white flex items-center justify-center gap-2 transition-all ${
-                processing ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl'
+              className={`w-full mt-2 py-4 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 text-lg ${
+                processing 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : isLive 
+                    ? 'bg-green-600 hover:bg-green-700 shadow-green-900/20' 
+                    : 'bg-red-600 hover:bg-red-700 shadow-red-900/20'
               }`}
             >
               {processing ? (
@@ -175,14 +180,37 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
                 </>
               ) : (
                 <>
-                  {YOCO_PUBLIC_KEY ? 'Proceed to Secure Payment' : `Pay R ${(amountInCents / 100).toFixed(2)}`}
+                   <Lock className="w-5 h-5" />
+                   {isLive ? 'Pay Securely Now' : isTest ? 'Pay (Test Mode)' : 'Pay (Simulation)'}
                 </>
               )}
             </button>
             
-            <p className="text-center text-xs text-gray-400 mt-4 flex items-center justify-center gap-1">
-              <Lock className="h-3 w-3" /> Encrypted by Yoco. 100% Secure.
-            </p>
+            {/* Trust Badges & Encryption Status */}
+            <div className="mt-6 pt-4 border-t border-gray-100 flex flex-col items-center gap-3">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+                <Lock className="w-3 h-3 text-green-600" />
+                <span>256-Bit SSL Encrypted</span>
+              </div>
+              
+              <div className="flex items-center justify-center gap-4 opacity-90 w-full">
+                 <div className="flex items-center gap-2">
+                    <div className="bg-blue-600/10 p-1.5 rounded-full">
+                       <img src="https://cdn-icons-png.flaticon.com/512/3502/3502601.png" alt="Safe" className="w-4 h-4 grayscale opacity-50" />
+                    </div>
+                    <span className="text-[10px] text-gray-500 font-bold leading-tight">Verified<br/>Merchant</span>
+                 </div>
+                 <div className="h-6 w-px bg-gray-200"></div>
+                 <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <div className="text-left">
+                       <p className="text-xs font-bold text-gray-800 leading-none">Safe to Transact</p>
+                       <p className="text-[10px] text-gray-400 leading-none mt-0.5">Protected by Yoco</p>
+                    </div>
+                 </div>
+              </div>
+            </div>
+
           </form>
         </div>
       </div>
