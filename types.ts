@@ -1,8 +1,7 @@
+
 export interface Product {
   id: string;
-  wcId: number; // WooCommerce Product ID for Single Bottle
-  wcId3Pack?: number; // WooCommerce Product ID for 3-Pack
-  wcId6Pack?: number; // WooCommerce Product ID for 6-Pack
+  sku: string; // Added for spreadsheet/database identification
   name: string;
   subName: string;
   description: string;
@@ -22,7 +21,7 @@ export interface CustomerDetails {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string; // Added Phone Number
+  phone: string; 
   address: string;
   city: string;
   zipCode: string;

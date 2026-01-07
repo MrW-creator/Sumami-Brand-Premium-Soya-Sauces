@@ -1,19 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download, Info, Mail, Lock, BellRing, ArrowRight } from 'lucide-react';
-import { PRODUCTS, BUNDLES, ASSETS, WC_CONFIG, COOKBOOK_DOWNLOAD_URL } from './constants';
+import { createClient } from '@supabase/supabase-js';
+import { PRODUCTS, BUNDLES, ASSETS, SUPABASE_CONFIG, COOKBOOK_DOWNLOAD_URL } from './constants';
 import { Product, CartItem, CustomerDetails } from './types';
 import Cart from './components/Cart';
 import YocoCheckout from './components/YocoCheckout';
 import BundleBuilder from './components/BundleBuilder';
 import LegalModal, { PolicyType } from './components/LegalModal';
+import AdminDashboard from './components/AdminDashboard';
 
 // Shipping is now all inclusive (FREE)
 const SHIPPING_COST = 0;
+
+// Initialize Supabase Client
+// We use a try/catch to prevent the app from crashing if keys are missing during development
+let supabase: any = null;
+try {
+  if (SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey) {
+    supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+  }
+} catch (error) {
+  console.error("Supabase init error:", error);
+}
 
 const App: React.FC = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
   
   // Legal Modal State
   const [activePolicy, setActivePolicy] = useState<PolicyType>(null);
@@ -23,7 +37,6 @@ const App: React.FC = () => {
     firstName: '', lastName: '', email: '', phone: '', address: '', city: '', zipCode: ''
   });
 
-  // State to hold the order details for the Success View (after cart is cleared)
   const [lastOrder, setLastOrder] = useState<{items: CartItem[], total: number, discount: number} | null>(null);
 
   // --- CALCULATION LOGIC INCLUDING MIX & MATCH DISCOUNT ---
@@ -51,7 +64,6 @@ const App: React.FC = () => {
     }
   };
   
-  // Standard Add to Cart
   const addToCart = (product: Product, quantity: number = 1, options?: string[], variantLabel?: string, overridePrice?: number) => {
     setCartItems(prev => {
       const uniqueId = `${product.id}-${variantLabel || ''}-${options?.sort().join(',') || ''}`;
@@ -83,22 +95,12 @@ const App: React.FC = () => {
 
   const addSaucePack = (product: Product, size: 3 | 6) => {
     const price = size === 3 ? 315 : 480;
-    
-    // Determine the correct WooCommerce ID to use
-    // If we have a specific ID for the pack size, use it. Otherwise fall back to base ID.
-    let targetWcId = product.wcId;
-    if (size === 3 && product.wcId3Pack) targetWcId = product.wcId3Pack;
-    if (size === 6 && product.wcId6Pack) targetWcId = product.wcId6Pack;
-    
-    // Create a product clone with the correct ID for the cart
-    const productToAdd = { ...product, wcId: targetWcId };
-    
-    addToCart(productToAdd, 1, undefined, `${size}-Pack`, price);
+    // We no longer need ID swapping for WooCommerce.
+    // We just add the item with a variant label.
+    addToCart(product, 1, undefined, `${size}-Pack`, price);
   };
 
-  // New handler for the Nudge CTA
   const handleAddRecommended = () => {
-    // We recommend the bestseller: Garlic & Ginger
     const recommended = PRODUCTS.find(p => p.id === 'garlic-ginger');
     if (recommended) {
       addSaucePack(recommended, 3);
@@ -147,71 +149,51 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const syncToWooCommerce = async (details: CustomerDetails, items: CartItem[], discount: number) => {
-    // 1. Prepare Line Items
-    const lineItems = items.map(item => {
-        let note = "";
-        if (item.variantLabel) note += `[${item.variantLabel}] `;
-        if (item.selectedOptions && item.selectedOptions.length > 0) {
-            note += `Selection: ${item.selectedOptions.join(', ')}`;
-        }
-        return {
-            product_id: item.wcId,
-            quantity: item.quantity,
-            meta_data: note ? [{ key: "Customer Selection", value: note }] : []
-        };
-    });
-
-    const fullNote = items.map(i => {
-        if (i.selectedOptions) return `${i.name}: ${i.selectedOptions.join(', ')}`;
-        if (i.variantLabel) return `${i.name} (${i.variantLabel})`;
-        return null;
-    }).filter(Boolean).join(' | ');
-
-    // 2. Prepare Fees (Negative Fee for Discount)
-    const feeLines = [];
-    if (discount > 0) {
-      feeLines.push({
-        name: 'Mix & Match Savings',
-        total: String(-discount), // Negative value reduces the order total
-        tax_status: 'none'
-      });
+  // ------------------------------------------------------------------
+  // SUPABASE DATABASE LOGIC
+  // ------------------------------------------------------------------
+  const saveOrderToSupabase = async (details: CustomerDetails, items: CartItem[], discount: number, finalTotal: number) => {
+    if (!supabase) {
+      console.warn("Supabase not configured in constants.ts. Order not saved to DB.");
+      return;
     }
 
-    // 3. Prepare Shipping (Force Free Shipping line)
-    const shippingLines = [
-      {
-        method_id: 'flat_rate',
-        method_title: 'Free Shipping (Landing Page Special)',
-        total: '0.00'
-      }
-    ];
+    // Simplify items for storage
+    const orderItems = items.map(item => ({
+      sku: item.sku, // INCLUDED SKU HERE
+      product_id: item.id,
+      name: item.name,
+      variant: item.variantLabel || 'Single',
+      options: item.selectedOptions || [],
+      quantity: item.quantity,
+      price: item.price
+    }));
 
-    const orderData = {
-      payment_method: 'yoco',
-      payment_method_title: 'Yoco Card Payment',
-      set_paid: true,
-      billing: {
-        first_name: details.firstName,
-        last_name: details.lastName,
-        address_1: details.address,
-        city: details.city,
-        postcode: details.zipCode,
-        country: 'ZA',
-        email: details.email,
-        phone: details.phone
-      },
-      line_items: lineItems,
-      fee_lines: feeLines,         // Added fees
-      shipping_lines: shippingLines, // Added forced free shipping
-      customer_note: `Generated by Landing Page. ${fullNote}`
-    };
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .insert([
+          {
+            customer_name: `${details.firstName} ${details.lastName}`,
+            email: details.email,
+            phone: details.phone,
+            address_full: `${details.address}, ${details.city}, ${details.zipCode}`,
+            items: orderItems, // Stored as JSONB
+            total_amount: finalTotal,
+            discount_amount: discount,
+            status: 'paid', // Assumed paid via Yoco
+            payment_provider: 'yoco'
+          }
+        ]);
 
-    console.group('🔌 WooCommerce Integration Sync');
-    console.log('Payload:', orderData);
-    console.groupEnd();
-    
-    // In a real app, you would fetch() to your backend proxy here.
+      if (error) throw error;
+      console.log("Order saved to Supabase successfully!");
+
+    } catch (err) {
+      console.error("Error saving order to Supabase:", err);
+      // In production, you might want to show a toast notification here
+      // asking the user to screenshot their confirmation just in case.
+    }
   };
 
   const handleDetailsSubmit = (e: React.FormEvent) => {
@@ -220,29 +202,26 @@ const App: React.FC = () => {
   };
 
   const handlePaymentSuccess = () => {
-    // 1. Save order details for the receipt view
+    // 1. Save order locally for display
     setLastOrder({
       items: [...cartItems],
       total: total,
       discount: discountAmount
     });
 
-    // 2. Sync to Backend (Pass discount amount)
-    syncToWooCommerce(customerDetails, cartItems, discountAmount);
+    // 2. Save to Supabase (Replaces WooCommerce Sync)
+    saveOrderToSupabase(customerDetails, cartItems, discountAmount, total);
 
-    // 3. Move to success, clear cart, AND scroll to top
+    // 3. Move to success view
     setCheckoutStep('success');
     setCartItems([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Construct WhatsApp Message
   const getWhatsAppLink = () => {
     if (!lastOrder) return '';
-    
-    // Create a simplified list for WhatsApp
     const itemsSummary = lastOrder.items.map(i => 
-      `${i.quantity} x ${i.name.replace('Infused With ', '')}`
+      `${i.quantity} x ${i.name.replace('Infused With ', '')} (${i.variantLabel || 'Single'})`
     ).join('\n');
     
     const message = `*ORDER #CONFIRMED - ACTIVATE TRACKING* 🚚
@@ -255,11 +234,7 @@ ${itemsSummary}
 
 ------------------
 ✅ *ACTION REQUIRED:*
-Hi Sumami Team! I am messaging to *activate Priority Tracking* for my order.
-
-Please add me to the *Sumami VIP List* on WhatsApp so I can receive my tracking number and future exclusive deals.
-
-📍 Delivery to: ${customerDetails.city}`;
+Hi Sumami Team! I am messaging to *activate Priority Tracking* for my order.`;
 
     return `https://wa.me/27662434867?text=${encodeURIComponent(message)}`;
   };
@@ -285,9 +260,6 @@ Please add me to the *Sumami VIP List* on WhatsApp so I can receive my tracking 
                 <p className="text-blue-800 text-sm">
                   We've emailed your invoice and order details to:<br/>
                   <strong>{customerDetails.email}</strong>
-                </p>
-                <p className="text-xs text-blue-600 mt-2">
-                    (Our warehouse is already packing your order!)
                 </p>
             </div>
             
@@ -338,7 +310,7 @@ Please add me to the *Sumami VIP List* on WhatsApp so I can receive my tracking 
                     </div>
                     <h3 className="text-lg font-black text-gray-900 mb-1">Activate Priority Tracking</h3>
                     <p className="text-xs text-gray-600 mb-4 max-w-xs mx-auto">
-                        Join our <span className="font-bold text-green-700">WhatsApp VIP List</span> to get your tracking number instantly and unlock future rewards.
+                        Join our <span className="font-bold text-green-700">WhatsApp VIP List</span> to get your tracking number instantly.
                     </p>
                     
                     <a 
@@ -351,11 +323,6 @@ Please add me to the *Sumami VIP List* on WhatsApp so I can receive my tracking 
                       <span>Activate & Join VIP List</span>
                       <ArrowRight className="w-4 h-4" />
                     </a>
-                    
-                    <div className="mt-3 flex items-center gap-2 text-[10px] text-gray-400 font-medium">
-                        <div className="w-2 h-2 rounded-full bg-yellow-400 animate-ping"></div>
-                        Status: Pending Activation
-                    </div>
                 </div>
             </div>
           </div>
@@ -452,6 +419,11 @@ Please add me to the *Sumami VIP List* on WhatsApp so I can receive my tracking 
         type={activePolicy}
         onClose={() => setActivePolicy(null)}
       />
+
+      {/* Admin Dashboard Overlay */}
+      {isAdminOpen && (
+        <AdminDashboard onClose={() => setIsAdminOpen(false)} />
+      )}
 
       {/* Yoco Payment Overlay */}
       {checkoutStep === 'payment' && (
@@ -930,6 +902,10 @@ Please add me to the *Sumami VIP List* on WhatsApp so I can receive my tracking 
                  <div className="flex gap-4 mt-4 md:mt-0">
                     <Instagram className="w-5 h-5 hover:text-white cursor-pointer" />
                     <Facebook className="w-5 h-5 hover:text-white cursor-pointer" />
+                 </div>
+                 {/* ADMIN LINK (HIDDEN IN PLAIN SIGHT) */}
+                 <div className="mt-4 md:mt-0 md:ml-4">
+                    <button onClick={() => setIsAdminOpen(true)} className="text-xs text-gray-800 hover:text-gray-600">Admin</button>
                  </div>
               </div>
             </div>
