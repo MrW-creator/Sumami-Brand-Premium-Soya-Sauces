@@ -8,8 +8,8 @@ import { Product } from './types';
 // 3. Paste the URL and ANON KEY below.
 // -----------------------------------------------------------------------------------------
 export const SUPABASE_CONFIG = {
-  url: '', // e.g. https://xyz.supabase.co
-  anonKey: '' // e.g. eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  url: 'https://lnzloecnqcxknozokflr.supabase.co', 
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxuemxvZWNucWN4a25vem9rZmxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2MDA1MjMsImV4cCI6MjA4MzE3NjUyM30.U2PbBVxCXxF-M0gDC3XT_Jba4uF8JMq0w2dowM2hAFA' 
 };
 
 // -----------------------------------------------------------------------------------------

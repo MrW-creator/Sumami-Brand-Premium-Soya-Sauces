@@ -403,8 +403,20 @@ const App: React.FC = () => {
             payment_provider: 'yoco'
         }]);
       if (error) throw error;
+      
+      // TRIGGER EMAIL SEND VIA SUPABASE EDGE FUNCTION
+      await supabase.functions.invoke('resend-order-email', {
+        body: {
+          customerName: `${details.firstName} ${details.lastName}`,
+          customerEmail: details.email,
+          orderTotal: finalTotal,
+          items: orderItems,
+          orderId: `SUM-${Date.now().toString().slice(-6)}` // Generate a temp ID for email if DB ID unavailable
+        }
+      });
+
     } catch (err) {
-      console.error("Error saving order:", err);
+      console.error("Error saving order or sending email:", err);
     }
   };
 
