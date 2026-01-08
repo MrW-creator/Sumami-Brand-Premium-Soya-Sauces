@@ -677,7 +677,7 @@ const App: React.FC = () => {
                 <div className="mt-4 flex items-center justify-center gap-2">
                    <ShieldCheck className="w-4 h-4 text-gray-400" />
                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Secured by</span>
-                   <img src={ASSETS.yoco} alt="Yoco" className="h-5 opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all" />
+                   <img src={ASSETS.yoco} alt="Yoco" className="h-5 transition-all" />
                 </div>
               </form>
             </div>
@@ -1064,7 +1064,7 @@ const App: React.FC = () => {
 
                    <div className="flex flex-col items-center">
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Powered By</p>
-                      <img src={ASSETS.yoco} alt="Yoco" className="h-8 grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all" />
+                      <img src={ASSETS.yoco} alt="Yoco" className="h-8 transition-all" />
                    </div>
 
                    <div className="h-10 w-px bg-gray-200 hidden md:block"></div>
