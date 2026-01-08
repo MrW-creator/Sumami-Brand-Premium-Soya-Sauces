@@ -626,7 +626,8 @@ const App: React.FC = () => {
       <WhatsAppButton />
 
       {/* FLOATING MOBILE CHECKOUT BUTTON (High Converting Update) */}
-      {cartCount > 0 && checkoutStep !== 'payment' && (
+      {/* UPDATE: Added !isCartOpen check to ensure it hides when the cart is active */}
+      {cartCount > 0 && checkoutStep !== 'payment' && !isCartOpen && (
           <button
             onClick={() => setIsCartOpen(true)}
             className="fixed bottom-6 right-6 z-40 bg-gray-900 text-white rounded-full shadow-2xl p-4 flex items-center gap-3 animate-in slide-in-from-bottom-6 duration-500 hover:scale-105 active:scale-95 transition-transform group"

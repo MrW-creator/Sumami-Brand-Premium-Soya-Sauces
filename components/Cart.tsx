@@ -85,8 +85,8 @@ const Cart: React.FC<CartProps> = ({
       {/* Drawer */}
       <div className={`absolute top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl transform transition-transform duration-300 ease-out flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         
-        {/* Header */}
-        <div className="px-5 py-4 border-b flex justify-between items-center bg-gray-50 shadow-sm z-10 relative">
+        {/* Header - REDUCED PADDING */}
+        <div className="px-5 py-3 border-b flex justify-between items-center bg-gray-50 shadow-sm z-10 relative">
           <h2 className="text-lg font-bold flex items-center gap-2 text-gray-800">
             <ShoppingBag className="w-5 h-5 text-amber-600" />
             Your Cart
@@ -96,9 +96,9 @@ const Cart: React.FC<CartProps> = ({
           </button>
         </div>
 
-        {/* --- GAMIFICATION BAR (High Converting Feature) --- */}
+        {/* --- GAMIFICATION BAR (High Converting Feature) - REDUCED PADDING --- */}
         {items.length > 0 && (
-          <div className="bg-gray-900 px-5 py-4 text-white">
+          <div className="bg-gray-900 px-5 py-3 text-white">
              <div className="flex justify-between items-center text-xs font-bold uppercase tracking-wider mb-2">
                 <span className="flex items-center gap-1"><Gift className="w-3 h-3 text-amber-500" /> Rewards Progress</span>
                 <span className={progressPercentage === 100 ? "text-green-400" : "text-amber-500"}>{progressPercentage}%</span>
@@ -125,7 +125,7 @@ const Cart: React.FC<CartProps> = ({
 
         {/* NUDGES (Call to Action) */}
         {(nudgeType === 'claim-6' || nudgeType === 'claim-3') && (
-            <div className="bg-green-100 px-4 py-3 text-xs text-green-900 border-b border-green-200 flex items-center justify-between gap-3 animate-in slide-in-from-top-2 duration-300 shadow-inner">
+            <div className="bg-green-100 px-4 py-2 text-xs text-green-900 border-b border-green-200 flex items-center justify-between gap-3 animate-in slide-in-from-top-2 duration-300 shadow-inner">
                 <div className="flex items-center gap-2 flex-1">
                     <div className="bg-green-200 p-1.5 rounded-full flex-shrink-0 animate-pulse">
                       <Gift className="w-3.5 h-3.5 text-green-700" />
@@ -144,7 +144,7 @@ const Cart: React.FC<CartProps> = ({
         )}
 
         {(nudgeType === 'upsell-6' || nudgeType === 'upsell-3') && !isNudgeDismissed && (
-            <div className="bg-amber-100 px-4 py-3 text-xs text-amber-900 border-b border-amber-200 flex items-center justify-between gap-3 animate-in slide-in-from-top-2 duration-300 shadow-inner">
+            <div className="bg-amber-100 px-4 py-2 text-xs text-amber-900 border-b border-amber-200 flex items-center justify-between gap-3 animate-in slide-in-from-top-2 duration-300 shadow-inner">
                 <div className="flex items-center gap-2 flex-1">
                     <div className="bg-amber-200 p-1.5 rounded-full flex-shrink-0">
                       <Gift className="w-3.5 h-3.5 text-amber-700" />
@@ -173,8 +173,8 @@ const Cart: React.FC<CartProps> = ({
             </div>
         )}
 
-        {/* Items */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-white">
+        {/* Items - ADDED SCROLLBAR VISIBILITY */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-white scrollbar-thin scrollbar-thumb-amber-500 scrollbar-track-gray-100">
           {items.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center text-gray-500">
               <div className="bg-gray-50 p-6 rounded-full mb-4">
@@ -201,7 +201,8 @@ const Cart: React.FC<CartProps> = ({
                 <div className="flex-1 flex flex-col justify-between">
                   <div>
                     <div className="flex justify-between items-start">
-                      <h3 className="font-bold text-gray-900 text-sm line-clamp-2 leading-tight pr-4">{item.name}</h3>
+                      {/* REMOVED LINE CLAMP FOR FULL NAME VISIBILITY */}
+                      <h3 className="font-bold text-gray-900 text-sm leading-tight pr-4">{item.name}</h3>
                       {!item.isBonus && (
                         <button 
                           onClick={() => onRemove(index)}
@@ -227,22 +228,23 @@ const Cart: React.FC<CartProps> = ({
                   </div>
 
                   <div className="flex justify-between items-end mt-2">
-                    <div className={`flex items-center gap-2 rounded-lg px-1.5 py-0.5 border ${item.isBonus ? 'border-amber-200 bg-amber-100' : 'bg-gray-50 border-gray-200'}`}>
+                    {/* QUANTITY CONTROLS - RESTYLED TO BE ATTENTION GRABBING */}
+                    <div className={`flex items-center gap-2 rounded-lg px-1.5 py-0.5 border ${item.isBonus ? 'border-amber-200 bg-amber-100' : 'bg-white border-gray-300 shadow-sm'}`}>
                       {!item.isBonus && (
                         <button 
                           onClick={() => onUpdateQuantity(index, -1)}
-                          className="p-1 hover:bg-white rounded transition-colors"
+                          className="w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-amber-500 hover:text-white rounded transition-colors"
                         >
-                          <Minus className="w-3 h-3 text-gray-600" />
+                          <Minus className="w-3 h-3" />
                         </button>
                       )}
-                      <span className="text-xs font-bold w-4 text-center text-gray-900">{item.quantity}</span>
+                      <span className="text-sm font-bold w-6 text-center text-gray-900">{item.quantity}</span>
                       {!item.isBonus && (
                         <button 
                           onClick={() => onUpdateQuantity(index, 1)}
-                          className="p-1 hover:bg-white rounded transition-colors"
+                          className="w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-amber-500 hover:text-white rounded transition-colors"
                         >
-                          <Plus className="w-3 h-3 text-gray-600" />
+                          <Plus className="w-3 h-3" />
                         </button>
                       )}
                     </div>
