@@ -16,8 +16,9 @@ declare const Deno: {
   };
 };
 
-// Uses the API Token you provided as a fallback if the secret is not set in Supabase
-const MAILTRAP_API_TOKEN = Deno.env.get("MAILTRAP_API_TOKEN") || "e266ed83f6fbb7273bc54e12755a2a61";
+// SECURITY UPDATE: Removed hardcoded fallback.
+// You MUST set MAILTRAP_API_TOKEN in Supabase Secrets.
+const MAILTRAP_API_TOKEN = Deno.env.get("MAILTRAP_API_TOKEN");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,6 +48,10 @@ serve(async (req) => {
   }
 
   try {
+    if (!MAILTRAP_API_TOKEN) {
+      throw new Error("Configuration Error: MAILTRAP_API_TOKEN is missing from Supabase Secrets.");
+    }
+
     const { customerName, customerEmail, orderTotal, items, orderId } = await req.json() as RequestBody;
 
     // Generate Invoice HTML
