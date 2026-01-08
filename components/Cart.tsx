@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Minus, ShoppingBag, Trash2, Truck, Tag, AlertCircle, Gift, Lock, ArrowRight } from 'lucide-react';
+import { X, Plus, Minus, ShoppingBag, Trash2, Truck, Tag, AlertCircle, Gift, Lock, ArrowRight, Zap } from 'lucide-react';
 import { CartItem } from '../types';
 import { ASSETS } from '../constants';
 
@@ -43,11 +43,30 @@ const Cart: React.FC<CartProps> = ({
   
   // Logic: Priority -> Claim 6, Claim 3, Upsell 6, Upsell 3.
   let nudgeType: 'claim-6' | 'claim-3' | 'upsell-6' | 'upsell-3' | null = null;
+  let progressPercentage = 0;
+  let progressMessage = "";
 
-  if (missingBonuses6 > 0) nudgeType = 'claim-6';
-  else if (missingBonuses3 > 0) nudgeType = 'claim-3';
-  else if (paid6Packs > 0 && paid6Packs % 2 !== 0) nudgeType = 'upsell-6';
-  else if (paid3Packs > 0 && paid3Packs % 2 !== 0) nudgeType = 'upsell-3';
+  if (missingBonuses6 > 0) {
+      nudgeType = 'claim-6';
+      progressPercentage = 100;
+      progressMessage = "Gift Unlocked!";
+  } else if (missingBonuses3 > 0) {
+      nudgeType = 'claim-3';
+      progressPercentage = 100;
+      progressMessage = "Gift Unlocked!";
+  } else if (paid6Packs > 0 && paid6Packs % 2 !== 0) {
+      nudgeType = 'upsell-6';
+      progressPercentage = 50;
+      progressMessage = "Add 1 more 6-Pack for a FREE Gift";
+  } else if (paid3Packs > 0 && paid3Packs % 2 !== 0) {
+      nudgeType = 'upsell-3';
+      progressPercentage = 50;
+      progressMessage = "Add 1 more 3-Pack for a FREE Gift";
+  } else {
+      // Default state (0 progress)
+      progressPercentage = 0;
+      progressMessage = "Buy 2 Packs, Get 1 Free";
+  }
 
   useEffect(() => {
     if (items.length === 0) {
@@ -67,7 +86,7 @@ const Cart: React.FC<CartProps> = ({
       <div className={`absolute top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl transform transition-transform duration-300 ease-out flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         
         {/* Header */}
-        <div className="px-5 py-4 border-b flex justify-between items-center bg-gray-50 shadow-sm z-10">
+        <div className="px-5 py-4 border-b flex justify-between items-center bg-gray-50 shadow-sm z-10 relative">
           <h2 className="text-lg font-bold flex items-center gap-2 text-gray-800">
             <ShoppingBag className="w-5 h-5 text-amber-600" />
             Your Cart
@@ -77,7 +96,34 @@ const Cart: React.FC<CartProps> = ({
           </button>
         </div>
 
-        {/* NUDGES */}
+        {/* --- GAMIFICATION BAR (High Converting Feature) --- */}
+        {items.length > 0 && (
+          <div className="bg-gray-900 px-5 py-4 text-white">
+             <div className="flex justify-between items-center text-xs font-bold uppercase tracking-wider mb-2">
+                <span className="flex items-center gap-1"><Gift className="w-3 h-3 text-amber-500" /> Rewards Progress</span>
+                <span className={progressPercentage === 100 ? "text-green-400" : "text-amber-500"}>{progressPercentage}%</span>
+             </div>
+             
+             {/* Progress Track */}
+             <div className="h-3 w-full bg-gray-700 rounded-full overflow-hidden relative">
+                {/* Striped Animation Background */}
+                <div 
+                  className={`absolute top-0 left-0 h-full transition-all duration-700 ease-out ${progressPercentage === 100 ? 'bg-green-500' : 'bg-gradient-to-r from-amber-500 to-amber-600'}`}
+                  style={{ width: `${progressPercentage}%` }}
+                >
+                  {/* CSS Stripe Effect */}
+                   <div className="w-full h-full opacity-30" style={{backgroundImage: 'linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent)', backgroundSize: '1rem 1rem'}}></div>
+                </div>
+             </div>
+             
+             <p className="text-[10px] mt-2 text-gray-400 font-medium text-center flex items-center justify-center gap-1.5">
+                {progressPercentage === 100 ? <Gift className="w-3 h-3 text-green-400 animate-bounce" /> : <Zap className="w-3 h-3 text-amber-400" />}
+                {progressMessage}
+             </p>
+          </div>
+        )}
+
+        {/* NUDGES (Call to Action) */}
         {(nudgeType === 'claim-6' || nudgeType === 'claim-3') && (
             <div className="bg-green-100 px-4 py-3 text-xs text-green-900 border-b border-green-200 flex items-center justify-between gap-3 animate-in slide-in-from-top-2 duration-300 shadow-inner">
                 <div className="flex items-center gap-2 flex-1">

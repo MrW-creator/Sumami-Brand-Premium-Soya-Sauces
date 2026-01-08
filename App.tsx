@@ -625,6 +625,22 @@ const App: React.FC = () => {
       {/* Floating WhatsApp Button */}
       <WhatsAppButton />
 
+      {/* FLOATING MOBILE CHECKOUT BUTTON (High Converting Update) */}
+      {cartCount > 0 && checkoutStep !== 'payment' && (
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="fixed bottom-6 right-6 z-40 bg-gray-900 text-white rounded-full shadow-2xl p-4 flex items-center gap-3 animate-in slide-in-from-bottom-6 duration-500 hover:scale-105 active:scale-95 transition-transform group"
+          >
+             <div className="relative">
+                <ShoppingBag className="w-6 h-6" />
+                <span className="absolute -top-2 -right-2 bg-amber-600 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-gray-900">
+                  {cartCount}
+                </span>
+             </div>
+             <span className="font-bold pr-2 hidden sm:inline">Checkout</span>
+          </button>
+      )}
+
       {/* Checkout Details Form */}
       {checkoutStep === 'details' ? (
         <div className="min-h-screen pt-24 pb-12 bg-gray-50">
@@ -704,7 +720,7 @@ const App: React.FC = () => {
 
             <div className="container mx-auto px-4 z-10 pt-20">
               <div className="max-w-3xl text-white">
-                <div className="flex flex-wrap items-center gap-3 mb-6">
+                <div className="flex flex-wrap items-center gap-3 mb-6 animate-in slide-in-from-left duration-700">
                   <div className="inline-flex items-center gap-2 bg-amber-500/20 backdrop-blur-sm border border-amber-500/50 rounded-full px-4 py-1">
                     <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                     <span className="text-sm font-medium text-amber-100">Voted Best Artisan Sauce 2024</span>
@@ -715,17 +731,17 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 
-                <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
+                <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight animate-in slide-in-from-bottom-4 duration-1000">
                   Unlock the <br/>
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-600">
                     Fifth Taste.
                   </span>
                 </h1>
-                <p className="text-xl text-gray-200 mb-8 leading-relaxed max-w-lg">
+                <p className="text-xl text-gray-200 mb-8 leading-relaxed max-w-lg animate-in slide-in-from-bottom-4 duration-1000 delay-200">
                   Premium soya sauces infused with authentic South African flavours. 
                   Transform ordinary meals into culinary masterpieces with just a splash.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-4 animate-in fade-in duration-1000 delay-300">
                   <button 
                     onClick={() => scrollToSection('bundles')}
                     className="px-8 py-4 bg-amber-600 hover:bg-amber-700 text-white rounded-full font-bold text-lg shadow-lg shadow-amber-900/50 transition-all hover:scale-105 text-center cursor-pointer"
