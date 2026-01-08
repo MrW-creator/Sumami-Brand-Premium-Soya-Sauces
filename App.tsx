@@ -104,9 +104,8 @@ const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // --- FETCH STORE SETTINGS ON LOAD ---
-  useEffect(() => {
-    const fetchStoreSettings = async () => {
+  // --- FETCH STORE SETTINGS (Reusable Function) ---
+  const fetchStoreSettings = async () => {
       if (!supabase) return;
       try {
         const { data } = await supabase.from('store_settings').select('*').single();
@@ -116,11 +115,15 @@ const App: React.FC = () => {
              setActiveYocoKey(key);
            }
            setStoreSettings(data);
+           console.log("Store settings updated. Active Mode:", data.is_live_mode ? "LIVE" : "TEST");
         }
       } catch (err) {
         console.debug("Using default settings (offline or first run)");
       }
-    };
+  };
+
+  // --- INITIAL LOAD ---
+  useEffect(() => {
     fetchStoreSettings();
   }, []);
 
@@ -596,7 +599,10 @@ const App: React.FC = () => {
 
       {/* Admin Dashboard Overlay */}
       {isAdminOpen && (
-        <AdminDashboard onClose={() => setIsAdminOpen(false)} />
+        <AdminDashboard 
+            onClose={() => setIsAdminOpen(false)} 
+            onSettingsUpdated={fetchStoreSettings} // PASS REFRESH FUNCTION
+        />
       )}
 
       {/* Yoco Payment Overlay - USING DYNAMIC KEY */}

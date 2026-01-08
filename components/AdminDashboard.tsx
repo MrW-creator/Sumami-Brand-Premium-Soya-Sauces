@@ -7,6 +7,7 @@ import { StoreSettings } from '../types';
 
 interface AdminDashboardProps {
   onClose: () => void;
+  onSettingsUpdated?: () => void; // New optional prop
 }
 
 // Mock Data for Preview Mode
@@ -45,7 +46,7 @@ const MOCK_ORDERS = [
 
 const ALLOWED_ADMIN_EMAIL = 'waldeckwayne@gmail.com';
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpdated }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
   
@@ -290,6 +291,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
         });
 
         if (error) throw error;
+
+        // TRIGGER APP REFRESH
+        if (onSettingsUpdated) {
+            onSettingsUpdated();
+        }
+
         alert("Settings Saved! The app will now use the new configuration.");
     } catch (err: any) {
         alert("Failed to save settings: " + err.message);
