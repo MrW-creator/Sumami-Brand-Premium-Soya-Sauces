@@ -456,7 +456,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                   </p>
                   <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-800 mb-6 flex items-center gap-2 text-left">
                       <Mail className="w-4 h-4 shrink-0" />
-                      <span>Sending to: <strong>{ALLOWED_ADMIN_EMAIL}</strong></span>
+                      <span>Sending to: <strong>Registered Admin Email</strong></span>
                   </div>
                   
                   {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{error}</div>}
