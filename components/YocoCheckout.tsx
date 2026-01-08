@@ -16,10 +16,14 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
   const [processing, setProcessing] = useState(false);
   const [sdkLoaded, setSdkLoaded] = useState(false);
 
+  // Clean key to ensure no whitespace issues
+  const cleanKey = publicKey ? publicKey.trim() : '';
+
   // Determine mode based on Key string content
-  const isLive = publicKey && publicKey.startsWith('pk_live');
-  const isTest = publicKey && publicKey.startsWith('pk_test');
-  const isSimulation = !publicKey;
+  const isLive = cleanKey && cleanKey.startsWith('pk_live');
+  // If we have a key but it's not live, we consider it test mode (even if the prefix is slightly off, we try it)
+  const isTest = cleanKey && !isLive;
+  const isSimulation = !cleanKey;
 
   useEffect(() => {
     // Check if Yoco SDK is available on window
@@ -28,23 +32,23 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
     } else {
       // If no SDK in index.html, we just set loaded to true for simulation mode to work, 
       // but warn in console if they provided a key.
-      if (publicKey) {
+      if (cleanKey) {
         console.error("Yoco SDK script missing in index.html");
       }
       setSdkLoaded(true);
     }
-  }, [publicKey]);
+  }, [cleanKey]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setProcessing(true);
 
-    if (publicKey) {
+    if (cleanKey) {
       // ------------------------------------------------------------------
       // REAL PRODUCTION / TEST MODE
       // ------------------------------------------------------------------
       try {
-        const yoco = new window.YocoSDK({ publicKey: publicKey });
+        const yoco = new window.YocoSDK({ publicKey: cleanKey });
         yoco.showPopup({
           amountInCents: amountInCents,
           currency: 'ZAR',
@@ -196,7 +200,7 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
               <div className="flex items-center justify-center gap-4 opacity-90 w-full">
                  <div className="flex items-center gap-2">
                     <div className="bg-blue-600/10 p-1.5 rounded-full">
-                       <img src="https://cdn-icons-png.flaticon.com/512/3502/3502601.png" alt="Safe" className="w-4 h-4 grayscale opacity-50" />
+                       <img src={ASSETS.yoco} alt="Yoco" className="w-4 h-4 grayscale opacity-50" />
                     </div>
                     <span className="text-[10px] text-gray-500 font-bold leading-tight">Verified<br/>Merchant</span>
                  </div>
