@@ -1,3 +1,4 @@
+
 // ==============================================================================
 // SUPABASE EDGE FUNCTION CODE
 // ==============================================================================
@@ -120,7 +121,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Sumami Sales <orders@sumamibrand.co.za>", // IMPORTANT: You must verify this domain in Resend
+        from: "Sumami Sales <orders@soyasauce.co.za>", // IMPORTANT: You must verify this domain in Resend
         to: [customerEmail],
         subject: `Order Confirmation #${orderId}`,
         html: htmlContent,

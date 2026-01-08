@@ -170,3 +170,10 @@ To enable tracking features, you must update your database and deploy a new func
    - Copy the code from `backend_shipping_email_function.ts` provided in the codebase.
    - Deploy: `supabase functions deploy resend-shipping-email`.
    - Note: It uses the same `RESEND_API_KEY` secret you set up in Step 8.
+
+================================================================================
+10. VERIFYING YOUR DOMAIN (SOYASAUCE.CO.ZA)
+================================================================================
+1.  **Verify Domain:** Go to Resend.com > Domains. Add `soyasauce.co.za`.
+2.  Add the DNS records provided by Resend to your domain host.
+3.  Once verified, your emails will send successfully!

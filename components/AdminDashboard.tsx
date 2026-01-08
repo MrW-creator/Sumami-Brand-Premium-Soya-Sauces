@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { Lock, Download, Database, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, Globe, Share2, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle } from 'lucide-react';
-import { SUPABASE_CONFIG, ADMIN_PIN } from '../constants';
+import { supabase } from '../lib/supabase/client';
+import { ADMIN_PIN } from '../constants';
 import { StoreSettings } from '../types';
 
 interface AdminDashboardProps {
@@ -42,16 +42,6 @@ const MOCK_ORDERS = [
     tracking_url: "https://thecourierguy.co.za"
   }
 ];
-
-// Initialize Supabase Client locally for this component
-let supabase: any = null;
-try {
-  if (SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey) {
-    supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-  }
-} catch (error) {
-  console.error("Supabase init error:", error);
-}
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -510,7 +500,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                         className="w-full text-lg border-2 border-gray-200 rounded-lg py-3 px-4 focus:border-amber-500 outline-none transition-all placeholder:text-gray-300"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="admin@sumamibrand.co.za"
+                        placeholder="admin@soyasauce.co.za"
                         required
                         />
                         {error && <p className="text-red-500 text-sm font-bold animate-pulse">{error}</p>}
@@ -982,7 +972,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                            </div>
                            <div className="text-right text-sm text-gray-600">
                                <p className="font-bold text-gray-900">Sumami Sales</p>
-                               <p>sales@sumamibrand.co.za</p>
+                               <p>sales@soyasauce.co.za</p>
                                <p>066 243 4867</p>
                                <p>Amanzimtoti, KwaZulu-Natal</p>
                            </div>

@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download, Info, Mail, Lock, BellRing, ArrowRight, Quote, ShieldCheck, CreditCard, Youtube } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
-import { PRODUCTS, BUNDLES, ASSETS, SUPABASE_CONFIG, COOKBOOK_DOWNLOAD_URL, YOCO_PUBLIC_KEY } from './constants';
+import { supabase } from './lib/supabase/client';
+import { PRODUCTS, BUNDLES, ASSETS, COOKBOOK_DOWNLOAD_URL, YOCO_PUBLIC_KEY } from './constants';
 import { Product, CartItem, CustomerDetails, StoreSettings } from './types';
 import Cart from './components/Cart';
 import YocoCheckout from './components/YocoCheckout';
@@ -32,16 +32,6 @@ const CUSTOMER_REVIEWS = [
   { name: "Thabo M.", text: "Secure payment via Yoco was easy. Great customer service on WhatsApp when I had a question.", rating: 5 },
   { name: "Lisa W.", text: "Citrus & Coriander is refreshing on summer salads. Such a unique flavour profile.", rating: 5 }
 ];
-
-// Initialize Supabase Client
-let supabase: any = null;
-try {
-  if (SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey) {
-    supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-  }
-} catch (error) {
-  console.error("Supabase init error:", error);
-}
 
 const App: React.FC = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -678,6 +668,13 @@ const App: React.FC = () => {
                 <button type="submit" className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-4 rounded-xl shadow-lg transition-transform active:scale-95 text-lg">
                   Continue to Payment (R {total.toFixed(2)})
                 </button>
+                
+                {/* NEW TRUST BADGE */}
+                <div className="mt-4 flex items-center justify-center gap-2">
+                   <ShieldCheck className="w-4 h-4 text-gray-400" />
+                   <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Secured by</span>
+                   <img src={ASSETS.yoco} alt="Yoco" className="h-5 opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all" />
+                </div>
               </form>
             </div>
           </div>

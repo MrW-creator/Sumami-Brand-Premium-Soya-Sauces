@@ -14,22 +14,24 @@ export const SUPABASE_CONFIG = {
 
 // -----------------------------------------------------------------------------------------
 // ADMIN DASHBOARD SECURITY
-// Change this to your preferred admin password.
-// Supports letters, numbers, and special characters.
+// ⚠️ CHANGE THIS BEFORE GOING LIVE!
+// This is the password to access your sales dashboard and customer data.
 // -----------------------------------------------------------------------------------------
-export const ADMIN_PIN = 'admin123';
+export const ADMIN_PIN = 'admin123'; // <--- CHANGE THIS TO A SECURE PIN (e.g. 'sumami2025!')
 
 // -----------------------------------------------------------------------------------------
 // YOCO PAYMENT CONFIGURATION
 // 1. Log into Yoco > Developers > Keys.
-// 2. Paste your Public Key below (e.g. 'pk_test_...' or 'pk_live_...').
+// 2. Paste your Public Key below.
+// NOTE: You can now override this in the Admin Dashboard > Settings tab!
 // -----------------------------------------------------------------------------------------
 export const YOCO_PUBLIC_KEY = 'pk_test_7edcb7cdmW93zGPed3a4'; 
 
 // -----------------------------------------------------------------------------------------
 // DOWNLOAD LINKS
+// ⚠️ UPDATE THIS WITH YOUR REAL GOOGLE DRIVE/DROPBOX LINK
 // -----------------------------------------------------------------------------------------
-export const COOKBOOK_DOWNLOAD_URL = 'https://drive.google.com/file/d/YOUR_LINK_HERE/view?usp=sharing'; 
+export const COOKBOOK_DOWNLOAD_URL = 'https://drive.google.com/file/d/YOUR_REAL_PDF_LINK_HERE/view?usp=sharing'; 
 
 // -----------------------------------------------------------------------------------------
 // IMAGE HOSTING CONFIGURATION

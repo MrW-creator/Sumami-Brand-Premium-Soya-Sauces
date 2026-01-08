@@ -89,7 +89,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Sumami Shipping <orders@sumamibrand.co.za>",
+        from: "Sumami Shipping <orders@soyasauce.co.za>",
         to: [customerEmail],
         subject: `Shipping Update: Order #${orderId} is on the way!`,
         html: htmlContent,

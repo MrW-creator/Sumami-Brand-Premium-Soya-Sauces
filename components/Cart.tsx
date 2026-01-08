@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, ShoppingBag, Trash2, Truck, Tag, AlertCircle, Gift, Lock, ArrowRight } from 'lucide-react';
 import { CartItem } from '../types';
+import { ASSETS } from '../constants';
 
 interface CartProps {
   isOpen: boolean;
@@ -272,6 +273,11 @@ const Cart: React.FC<CartProps> = ({
             >
                 Continue Shopping
             </button>
+
+            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-center gap-2 opacity-60">
+                <span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Payments Powered by</span>
+                <img src={ASSETS.yoco} alt="Yoco" className="h-4 grayscale" />
+            </div>
           </div>
         )}
       </div>
