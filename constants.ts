@@ -79,7 +79,8 @@ export const PRODUCTS: Product[] = [
     image: USE_SUPABASE_IMAGES 
       ? `${SUPABASE_STORAGE_URL}/Infused%20With%20Garlic%20&%20Ginger.webp` 
       : `${WP_BASE_2025}/garlic-ginger.png`,
-    category: 'sauce'
+    category: 'sauce',
+    badge: 'Best Seller'
   },
   {
     id: 'citrus-coriander',
@@ -91,7 +92,8 @@ export const PRODUCTS: Product[] = [
     image: USE_SUPABASE_IMAGES 
       ? `${SUPABASE_STORAGE_URL}/Infused%20With%20Citrus%20&%20Coriander.webp` 
       : `${WP_BASE_2025}/citrus-coriander.png`,
-    category: 'sauce'
+    category: 'sauce',
+    badge: 'Fresh & Zesty'
   },
   {
     id: 'chili',
@@ -103,7 +105,8 @@ export const PRODUCTS: Product[] = [
     image: USE_SUPABASE_IMAGES 
       ? `${SUPABASE_STORAGE_URL}/Infused%20With%20Chilli.webp` 
       : `${WP_BASE_2025}/Chillies.png`,
-    category: 'sauce'
+    category: 'sauce',
+    badge: 'Medium Heat'
   },
   {
     id: 'beef-stock',
@@ -127,7 +130,8 @@ export const PRODUCTS: Product[] = [
     image: USE_SUPABASE_IMAGES 
       ? `${SUPABASE_STORAGE_URL}/Infused%20With%20Black%20Pepper%20&%20Sea%20Salt.webp` 
       : `${WP_BASE_2025}/black-pepper-and-sea-salt.png`,
-    category: 'sauce'
+    category: 'sauce',
+    badge: "Chef's Pick"
   },
   {
     id: 'sesame-mustard',
@@ -151,7 +155,8 @@ export const PRODUCTS: Product[] = [
     image: USE_SUPABASE_IMAGES 
       ? `${SUPABASE_STORAGE_URL}/Fenugreek%20Bottled.webp` 
       : `${WP_BASE_2025}/fenugreek.png`,
-    category: 'sauce'
+    category: 'sauce',
+    badge: 'Unique Flavor'
   }
 ];
 
@@ -181,6 +186,7 @@ export const BUNDLES: Product[] = [
     image: USE_SUPABASE_IMAGES 
       ? `${SUPABASE_STORAGE_URL}/Master%20Chef%20Collection.webp` 
       : `${WP_BASE_2026}/SOYA-MIXED-FLAVOUR-7PACK.png`,
-    category: 'bundle'
+    category: 'bundle',
+    highlight: true
   }
 ];

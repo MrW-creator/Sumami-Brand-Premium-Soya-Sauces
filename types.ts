@@ -9,6 +9,7 @@ export interface Product {
   image: string;
   category: 'sauce' | 'bundle';
   highlight?: boolean;
+  badge?: string; // New: "Best Seller", "Hot", etc.
 }
 
 export interface CartItem extends Product {

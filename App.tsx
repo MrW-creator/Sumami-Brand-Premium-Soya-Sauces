@@ -94,7 +94,8 @@ const App: React.FC = () => {
         sessionStorage.setItem('sumami_visit_tracked', 'true');
 
       } catch (err) {
-        console.warn("Analytics tracking failed (likely adblocker or network)", err);
+        // Silent fail for AdBlockers
+        console.debug("Analytics tracking skipped.");
       }
     };
     
@@ -117,7 +118,7 @@ const App: React.FC = () => {
            setStoreSettings(data);
         }
       } catch (err) {
-        console.log("Using default settings");
+        console.debug("Using default settings (offline or first run)");
       }
     };
     fetchStoreSettings();
@@ -737,7 +738,7 @@ const App: React.FC = () => {
           <div className="bg-gradient-to-r from-green-600 to-green-700 text-white py-4 text-center text-base font-black uppercase tracking-widest shadow-lg relative z-20">
             <p className="flex items-center justify-center gap-3 animate-pulse">
               <Truck className="w-5 h-5" />
-              <span>Limited Offer: Free Shipping on ALL Orders Today!</span>
+              <span>Limited Offer: Free Shipping on ALL Orders!</span>
               <Truck className="w-5 h-5 transform scale-x-[-1]" />
             </p>
           </div>
@@ -745,7 +746,7 @@ const App: React.FC = () => {
           {/* Social Proof Strip */}
           <div className="bg-amber-50 py-10 border-b border-amber-100">
             <div className="container mx-auto px-4 flex flex-wrap justify-center gap-8 md:gap-16 opacity-70 grayscale hover:grayscale-0 transition-all duration-500">
-              {['Brewed for depth — not diluted', 'Fermented Soya Sauce', 'Hand Crafted'].map((item) => (
+              {['Brewed for depth — not diluted', 'Fermented Soya Sauce', 'Infused with Umami Flavours'].map((item) => (
                 <div key={item} className="flex items-center gap-2 font-bold text-gray-700">
                   <Check className="w-5 h-5 text-amber-600" /> {item}
                 </div>
@@ -794,6 +795,12 @@ const App: React.FC = () => {
                         className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                         loading="lazy"
                       />
+                      {/* --- SALES BADGE --- */}
+                      {product.badge && (
+                        <div className="absolute top-4 right-4 bg-amber-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg z-10">
+                           {product.badge}
+                        </div>
+                      )}
                     </div>
                     <div className="p-6 flex-1 flex flex-col">
                       <div className="mb-4">
@@ -802,19 +809,29 @@ const App: React.FC = () => {
                       </div>
                       <p className="text-gray-600 mb-6 flex-1">{product.description}</p>
                       
+                      <div className="flex items-center gap-2 mb-4">
+                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                         <span className="text-xs font-bold text-green-700 uppercase">In Stock & Ready to Ship</span>
+                      </div>
+
                       <div className="mt-auto">
                         <div className="grid grid-cols-2 gap-3">
                           <button 
                             onClick={() => addSaucePack(product, 3)}
-                            className="px-4 py-3 bg-white border-2 border-gray-900 text-gray-900 rounded-lg font-bold hover:bg-gray-50 transition-colors text-sm"
+                            className="px-2 py-3 bg-white border-2 border-gray-900 text-gray-900 rounded-lg font-bold hover:bg-gray-50 transition-colors text-sm flex flex-col items-center justify-center"
                           >
-                            Buy 3 Pack <span className="block text-xs font-normal text-gray-500">R 315.00</span>
+                            <span>Buy 3 Pack</span>
+                            <span className="text-xs font-normal text-gray-500">R 315.00</span>
                           </button>
                           <button 
                             onClick={() => addSaucePack(product, 6)}
-                            className="px-4 py-3 bg-gray-900 text-white rounded-lg font-bold hover:bg-amber-600 transition-colors text-sm shadow-lg"
+                            className="px-2 py-3 bg-gray-900 text-white rounded-lg font-bold hover:bg-amber-600 transition-colors text-sm shadow-lg flex flex-col items-center justify-center relative overflow-hidden group/btn"
                           >
-                            Buy 6 Pack <span className="block text-xs font-normal text-gray-300">R 480.00</span>
+                            {/* Shine Effect */}
+                            <div className="absolute inset-0 bg-white/10 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 skew-x-12"></div>
+                            
+                            <span>Buy 6 Pack</span>
+                            <span className="text-xs text-amber-400 font-bold">Best Value: R 480</span>
                           </button>
                         </div>
                       </div>
@@ -944,11 +961,6 @@ const App: React.FC = () => {
               <div className="flex flex-col md:flex-row justify-center gap-8 max-w-5xl mx-auto">
                 {BUNDLES.map((bundle) => (
                    <div key={bundle.id} className={`flex-1 bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col relative ${bundle.highlight ? 'ring-4 ring-amber-500 transform md:-translate-y-4' : ''}`}>
-                      {bundle.highlight && (
-                        <div className="absolute top-0 inset-x-0 bg-green-600 text-white text-center py-1 text-sm font-bold uppercase tracking-wide z-10">
-                           Most Popular &bull; Free Shipping
-                        </div>
-                      )}
                       <div className="aspect-video overflow-hidden">
                         <img src={bundle.image} alt={bundle.name} className="w-full h-full object-cover" />
                       </div>

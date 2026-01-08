@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lock, Download, Database, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, Globe, Share2, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home } from 'lucide-react';
+import { Lock, Download, Database, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, Globe, Share2, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { ADMIN_PIN } from '../constants';
 import { StoreSettings } from '../types';
@@ -43,6 +43,8 @@ const MOCK_ORDERS = [
   }
 ];
 
+const ALLOWED_ADMIN_EMAIL = 'waldeckwayne@gmail.com';
+
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(false);
@@ -50,7 +52,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   // Login State
   const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password');
   const [pin, setPin] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(ALLOWED_ADMIN_EMAIL);
   const [otpSent, setOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [error, setError] = useState('');
@@ -85,6 +87,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     tiktok_url: ''
   });
   const [savingSettings, setSavingSettings] = useState(false);
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
 
   // Stats
   const [stats, setStats] = useState({
@@ -98,17 +101,29 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     if (supabase) {
         supabase.auth.getSession().then(({ data: { session } }: any) => {
             if (session) {
-                setIsAuthenticated(true);
-                fetchOrders();
-                fetchSettings();
+                // Verify Email Match
+                if (session.user?.email?.toLowerCase() === ALLOWED_ADMIN_EMAIL.toLowerCase()) {
+                    setIsAuthenticated(true);
+                    fetchOrders();
+                    fetchSettings();
+                } else {
+                    supabase.auth.signOut();
+                    setError("Unauthorized email address.");
+                }
             }
         });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
             if (session) {
-                setIsAuthenticated(true);
-                fetchOrders();
-                fetchSettings();
+                if (session.user?.email?.toLowerCase() === ALLOWED_ADMIN_EMAIL.toLowerCase()) {
+                    setIsAuthenticated(true);
+                    fetchOrders();
+                    fetchSettings();
+                } else {
+                     supabase.auth.signOut();
+                     setIsAuthenticated(false);
+                     setError("Unauthorized email address.");
+                }
             }
         });
         return () => subscription.unsubscribe();
@@ -161,13 +176,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
         setError("Supabase not configured. Cannot send OTP.");
         return;
     }
+
+    if (email.toLowerCase() !== ALLOWED_ADMIN_EMAIL.toLowerCase()) {
+        setError(`Access restricted. Only ${ALLOWED_ADMIN_EMAIL} can login.`);
+        return;
+    }
+
     setError('');
     setOtpLoading(true);
 
     try {
         const { error } = await supabase.auth.signInWithOtp({
             email,
-            options: { shouldCreateUser: false } // Only allow existing admins
+            options: { shouldCreateUser: true } // Allow user creation for this admin email
         });
         if (error) throw error;
         setOtpSent(true);
@@ -274,6 +295,34 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
         alert("Failed to save settings: " + err.message);
     } finally {
         setSavingSettings(false);
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!supabase) return;
+    
+    // Prompt user for destination email
+    const targetEmail = prompt("Enter the email address to send the test invoice to:", "admin@soyasauce.co.za");
+    if (!targetEmail) return; // Cancelled
+
+    setSendingTestEmail(true);
+    try {
+        const { error } = await supabase.functions.invoke('resend-order-email', {
+            body: {
+              customerName: "Test Customer",
+              customerEmail: targetEmail,
+              orderTotal: 100.00,
+              items: [{ name: "Test Sauce", variant: "Single", quantity: 1, price: 100 }],
+              orderId: "TEST-123"
+            }
+        });
+
+        if (error) throw error;
+        alert(`Test email sent successfully to ${targetEmail}! Check your inbox (or Mailtrap sandbox).`);
+    } catch (err: any) {
+        alert("Failed to send test email. Check Supabase Logs or Mailtrap Token. Error: " + err.message);
+    } finally {
+        setSendingTestEmail(false);
     }
   };
 
@@ -791,7 +840,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                          <Key className="w-8 h-8 text-gray-700" />
                      </div>
                      <div>
-                         <h2 className="text-2xl font-black text-gray-900">Payment Settings</h2>
+                         <h2 className="text-2xl font-black text-gray-900">Store Configuration</h2>
                          <p className="text-gray-500">Manage your Yoco API Keys and Payment Mode.</p>
                      </div>
                  </div>
@@ -851,7 +900,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                          />
                      </div>
 
-                     <div className="pt-4 border-t">
+                     <div className="pt-4 border-t flex flex-col gap-4">
                          <button 
                             onClick={saveSettings}
                             disabled={savingSettings}
@@ -860,6 +909,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                              {savingSettings ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                              {savingSettings ? 'Saving...' : 'Save Settings'}
                          </button>
+
+                         {/* TEST EMAIL BUTTON */}
+                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center justify-between">
+                             <div>
+                                <h5 className="font-bold text-blue-900 text-sm">Test Email Connection</h5>
+                                <p className="text-xs text-blue-700">Send a dummy receipt to verify Mailtrap.</p>
+                             </div>
+                             <button
+                                onClick={handleSendTestEmail}
+                                disabled={sendingTestEmail}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+                             >
+                                {sendingTestEmail ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                                {sendingTestEmail ? 'Sending...' : 'Send Test'}
+                             </button>
+                         </div>
                      </div>
                  </div>
             </div>
