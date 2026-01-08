@@ -11,7 +11,7 @@ The Flow:
 1. Customer buys on Landing Page.
 2. Payment is processed by Yoco.
 3. Order details are saved to Supabase (Database).
-4. (Optional) Supabase triggers an email via Resend.
+4. (Optional) Supabase triggers an email via Mailtrap.
 
 ================================================================================
 2. SETTING UP SUPABASE (DATABASE) - UPDATED & SAFE
@@ -109,21 +109,12 @@ Your payments are handled by Yoco directly.
 5. Paste it into `YOCO_PUBLIC_KEY`.
 
 ================================================================================
-5. SENDING EMAILS (RESEND)
+5. SENDING EMAILS (MAILTRAP)
 ================================================================================
 In a standalone app, the browser cannot send emails directly (it reveals your passwords).
 The correct way to do this is using Supabase Edge Functions.
 
-However, since you are just starting:
-1. The app creates the order in Supabase.
-2. You can view all orders in the Supabase Dashboard > Table Editor.
-3. For now, you can manually email them or use Zapier.
-
-**If you want to automate emails via Resend + Supabase:**
-1. Create an account on Resend.com.
-2. In Supabase, go to **Database Webhooks**.
-3. Create a webhook that triggers when a new row is inserted into `orders`.
-4. Point that webhook to an automation service (like Zapier or Make.com) that sends the email via Resend.
+The code is pre-configured to use Mailtrap Sending API.
 
 ================================================================================
 6. PRODUCTS
@@ -139,26 +130,23 @@ Deploy to Vercel exactly as before.
 1. `npm run build`
 2. Publish.
 
-Since there is no WooCommerce connection, your build will never break because of 
-WordPress updates or plugin conflicts.
-
 ================================================================================
-8. STEP 8: SETTING UP EMAIL (RESEND) - ORDER CONFIRMATION
+8. STEP 8: SETTING UP EMAIL (MAILTRAP) - ORDER CONFIRMATION
 ================================================================================
 I have written the backend code for sending emails in `backend_email_function.ts`.
 You need to put this code inside Supabase.
 
-1.  **Get API Key**: Go to Resend.com -> API Keys -> Create API Key. Copy it.
+1.  **Get API Key**: You provided the Mailtrap Token: e266ed83f6fbb7273bc54e12755a2a61.
 2.  **Add Secret**: Go to Supabase Dashboard -> Project Settings -> Edge Functions -> Secrets.
-    -   Add a new secret called `RESEND_API_KEY`.
-    -   Paste your Resend Key there.
+    -   Add a new secret called `MAILTRAP_API_TOKEN`.
+    -   Paste your Mailtrap Token there.
 3.  **Deploy Function**:
     -   Create function: `supabase functions new resend-order-email`
     -   Paste code from `backend_email_function.ts`.
     -   Deploy: `supabase functions deploy resend-order-email`.
 
 ================================================================================
-9. STEP 9: ADDING TRACKING & SHIPPING EMAILS (NEW!)
+9. STEP 9: ADDING TRACKING & SHIPPING EMAILS
 ================================================================================
 To enable tracking features, you must update your database and deploy a new function.
 
@@ -169,11 +157,10 @@ To enable tracking features, you must update your database and deploy a new func
    - Create a new file in your Supabase functions folder named `resend-shipping-email/index.ts`.
    - Copy the code from `backend_shipping_email_function.ts` provided in the codebase.
    - Deploy: `supabase functions deploy resend-shipping-email`.
-   - Note: It uses the same `RESEND_API_KEY` secret you set up in Step 8.
+   - Note: It uses the same `MAILTRAP_API_TOKEN` secret you set up in Step 8.
 
 ================================================================================
-10. VERIFYING YOUR DOMAIN (SOYASAUCE.CO.ZA)
+10. VERIFYING YOUR DOMAIN
 ================================================================================
-1.  **Verify Domain:** Go to Resend.com > Domains. Add `soyasauce.co.za`.
-2.  Add the DNS records provided by Resend to your domain host.
-3.  Once verified, your emails will send successfully!
+1.  **Verify Domain:** Ensure `soyasauce.co.za` is verified in your Mailtrap account.
+2.  Once verified, your emails will send successfully!

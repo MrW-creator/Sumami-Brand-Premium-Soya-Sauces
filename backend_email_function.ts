@@ -4,7 +4,7 @@
 // ==============================================================================
 // 1. Create a new file in your Supabase project: supabase/functions/resend-order-email/index.ts
 // 2. Paste this entire file content into it.
-// 3. Ensure you have added RESEND_API_KEY to your Supabase Secrets.
+// 3. Ensure you have added MAILTRAP_API_TOKEN to your Supabase Secrets.
 // ==============================================================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -16,7 +16,8 @@ declare const Deno: {
   };
 };
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+// Uses the API Token you provided as a fallback if the secret is not set in Supabase
+const MAILTRAP_API_TOKEN = Deno.env.get("MAILTRAP_API_TOKEN") || "e266ed83f6fbb7273bc54e12755a2a61";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -113,16 +114,19 @@ serve(async (req) => {
       </html>
     `;
 
-    // Call Resend API
-    const res = await fetch("https://api.resend.com/emails", {
+    // MAILTRAP API CALL
+    const res = await fetch("https://send.api.mailtrap.io/api/send", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
+        Authorization: `Bearer ${MAILTRAP_API_TOKEN}`,
       },
       body: JSON.stringify({
-        from: "Sumami Sales <orders@soyasauce.co.za>", // IMPORTANT: You must verify this domain in Resend
-        to: [customerEmail],
+        from: {
+            email: "orders@soyasauce.co.za",
+            name: "Sumami Sales"
+        },
+        to: [{ email: customerEmail, name: customerName }],
         subject: `Order Confirmation #${orderId}`,
         html: htmlContent,
       }),
@@ -130,11 +134,16 @@ serve(async (req) => {
 
     const data = await res.json();
 
+    if (!res.ok) {
+        throw new Error(JSON.stringify(data));
+    }
+
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error: any) {
+    console.error("Mailtrap Error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,

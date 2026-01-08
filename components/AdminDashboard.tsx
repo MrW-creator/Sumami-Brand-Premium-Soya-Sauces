@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lock, Download, Database, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, Globe, Share2, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle } from 'lucide-react';
+import { Lock, Download, Database, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, Globe, Share2, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { ADMIN_PIN } from '../constants';
 import { StoreSettings } from '../types';
@@ -566,6 +566,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <button 
+            onClick={onClose}
+            className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors mr-2"
+          >
+            <Home className="w-4 h-4" />
+            <span className="hidden sm:inline">Back to Store</span>
+          </button>
+
           {!isDemoMode && viewTab !== 'settings' && viewTab !== 'analytics' && (
             <button onClick={fetchOrders} className="p-2 hover:bg-gray-100 rounded-full" title="Refresh">
               <RefreshCw className={`w-5 h-5 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
@@ -792,24 +800,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                      {/* Toggle Mode */}
                      <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200">
                          <div>
-                             <h4 className="font-bold text-gray-900">Live Payment Mode</h4>
-                             <p className="text-xs text-gray-500">
+                             <h4 className="font-bold text-gray-900">Payment Gateway Mode</h4>
+                             <p className="text-xs text-gray-500 mt-1">
                                  {settings.is_live_mode 
-                                    ? "Enabled. Real money will be charged." 
-                                    : "Disabled. Payments are in Test/Simulation mode."}
+                                    ? "Real money transactions enabled." 
+                                    : "Simulation only. No cards charged."}
                              </p>
                          </div>
                          <button 
-                           onClick={() => setSettings(prev => ({...prev, is_live_mode: !prev.is_live_mode}))}
-                           className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all ${
-                               settings.is_live_mode 
-                               ? 'bg-green-600 text-white hover:bg-green-700' 
-                               : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
-                           }`}
-                         >
-                             {settings.is_live_mode ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
-                             {settings.is_live_mode ? 'LIVE' : 'TEST'}
-                         </button>
+                            onClick={() => setSettings(prev => ({...prev, is_live_mode: !prev.is_live_mode}))}
+                            className={`flex items-center gap-3 px-5 py-3 rounded-xl font-bold transition-all shadow-sm border-2 ${
+                            settings.is_live_mode 
+                                ? 'bg-green-50 border-green-500 text-green-700 hover:bg-green-100' 
+                                : 'bg-yellow-50 border-yellow-400 text-yellow-700 hover:bg-yellow-100'
+                            }`}
+                        >
+                            {/* The Light Indicator */}
+                            <span className={`relative flex h-3 w-3`}>
+                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${settings.is_live_mode ? 'bg-green-500' : 'bg-yellow-400'}`}></span>
+                                <span className={`relative inline-flex rounded-full h-3 w-3 ${settings.is_live_mode ? 'bg-green-600' : 'bg-yellow-400'}`}></span>
+                            </span>
+
+                            <span>{settings.is_live_mode ? 'LIVE MODE' : 'DEMO MODE'}</span>
+                            
+                            {/* Toggle Icon */}
+                            {settings.is_live_mode ? <ToggleRight className="w-6 h-6 ml-2" /> : <ToggleLeft className="w-6 h-6 ml-2" />}
+                        </button>
                      </div>
 
                      {/* Keys */}

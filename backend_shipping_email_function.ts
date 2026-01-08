@@ -13,7 +13,8 @@ declare const Deno: {
   };
 };
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+// Uses the API Token you provided as a fallback
+const MAILTRAP_API_TOKEN = Deno.env.get("MAILTRAP_API_TOKEN") || "e266ed83f6fbb7273bc54e12755a2a61";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -82,15 +83,19 @@ serve(async (req) => {
       </html>
     `;
 
-    const res = await fetch("https://api.resend.com/emails", {
+    // MAILTRAP API CALL
+    const res = await fetch("https://send.api.mailtrap.io/api/send", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
+        Authorization: `Bearer ${MAILTRAP_API_TOKEN}`,
       },
       body: JSON.stringify({
-        from: "Sumami Shipping <orders@soyasauce.co.za>",
-        to: [customerEmail],
+        from: {
+            email: "orders@soyasauce.co.za",
+            name: "Sumami Shipping"
+        },
+        to: [{ email: customerEmail, name: customerName }],
         subject: `Shipping Update: Order #${orderId} is on the way!`,
         html: htmlContent,
       }),
@@ -98,11 +103,16 @@ serve(async (req) => {
 
     const data = await res.json();
 
+    if (!res.ok) {
+        throw new Error(JSON.stringify(data));
+    }
+
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error: any) {
+    console.error("Mailtrap Error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,

@@ -314,7 +314,9 @@ const App: React.FC = () => {
     if (bundle.id === 'starter-pack') {
       setIsBuilderOpen(true);
     } else {
-      addToCart(bundle);
+      // Master Chef or other bundles
+      // Pass 'Bundle' or specific pack size as variantLabel so it shows in email/cart
+      addToCart(bundle, 1, undefined, 'Bundle');
     }
   };
 
@@ -325,7 +327,8 @@ const App: React.FC = () => {
         const p = PRODUCTS.find(p => p.id === id);
         return p ? p.name.replace('Infused With ', '') : id;
       });
-      addToCart(trioProduct, 1, selectedNames);
+      // Explicitly mark as 3-Pack so it counts towards the "Buy 2 Get 1 Free" logic
+      addToCart(trioProduct, 1, selectedNames, '3-Pack');
     }
   };
 
@@ -742,7 +745,7 @@ const App: React.FC = () => {
           {/* Social Proof Strip */}
           <div className="bg-amber-50 py-10 border-b border-amber-100">
             <div className="container mx-auto px-4 flex flex-wrap justify-center gap-8 md:gap-16 opacity-70 grayscale hover:grayscale-0 transition-all duration-500">
-              {['Brewed for depth — not diluted', 'Locally Produced', 'Fermented Soya Sauce', 'Hand Crafted'].map((item) => (
+              {['Brewed for depth — not diluted', 'Fermented Soya Sauce', 'Hand Crafted'].map((item) => (
                 <div key={item} className="flex items-center gap-2 font-bold text-gray-700">
                   <Check className="w-5 h-5 text-amber-600" /> {item}
                 </div>
@@ -781,7 +784,7 @@ const App: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {PRODUCTS.map((product) => (
+                {PRODUCTS.filter(p => p.category === 'sauce').map((product) => (
                   <div key={product.id} className="group relative bg-gray-50 rounded-2xl overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-100 flex flex-col">
                     <div className="aspect-[4/3] bg-white overflow-hidden relative">
                       <div className="absolute inset-0 bg-gray-100 animate-pulse"></div>
@@ -954,11 +957,6 @@ const App: React.FC = () => {
                         <p className="text-amber-600 font-medium mb-4">{bundle.subName}</p>
                         <p className="text-gray-600 mb-6 flex-1">{bundle.description}</p>
                         
-                        <div className="bg-amber-50 p-3 rounded-lg border border-amber-100 mb-6 flex items-center gap-2">
-                           <Gift className="w-4 h-4 text-amber-600" />
-                           <span className="text-xs font-bold text-amber-800 uppercase">Includes FREE Cookbook</span>
-                        </div>
-
                         <div className="mt-auto pt-6 border-t border-gray-100">
                           <div className="flex items-end gap-2 mb-4">
                              <span className="text-3xl font-black text-gray-900">R {bundle.price}</span>
@@ -1137,8 +1135,16 @@ const App: React.FC = () => {
                     )}
                  </div>
 
-                 <div className="mt-4 md:mt-0 md:ml-4">
-                    <button onClick={() => setIsAdminOpen(true)} className="text-xs text-gray-800 hover:text-gray-600">Admin</button>
+                 <div className="mt-4 md:mt-0 md:ml-4 flex items-center gap-3">
+                    {storeSettings && (
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100 border border-gray-200" title={storeSettings.is_live_mode ? "Live Mode Active" : "Demo Mode Active"}>
+                            <div className={`w-2 h-2 rounded-full ${storeSettings.is_live_mode ? 'bg-green-500 animate-pulse' : 'bg-yellow-400'}`}></div>
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{storeSettings.is_live_mode ? 'LIVE' : 'DEMO'}</span>
+                        </div>
+                    )}
+                    <button onClick={() => setIsAdminOpen(true)} className="text-xs text-gray-800 hover:text-gray-600 font-bold uppercase tracking-wide">
+                        Admin Access
+                    </button>
                  </div>
               </div>
             </div>

@@ -3,9 +3,6 @@ import { Product } from './types';
 
 // -----------------------------------------------------------------------------------------
 // SUPABASE CONFIGURATION (DATABASE)
-// 1. Go to https://supabase.com and create a free project.
-// 2. Go to Project Settings > API.
-// 3. Paste the URL and ANON KEY below.
 // -----------------------------------------------------------------------------------------
 export const SUPABASE_CONFIG = {
   url: 'https://lnzloecnqcxknozokflr.supabase.co', 
@@ -14,55 +11,63 @@ export const SUPABASE_CONFIG = {
 
 // -----------------------------------------------------------------------------------------
 // ADMIN DASHBOARD SECURITY
-// ⚠️ CHANGE THIS BEFORE GOING LIVE!
-// This is the password to access your sales dashboard and customer data.
 // -----------------------------------------------------------------------------------------
-export const ADMIN_PIN = 'admin123'; // <--- CHANGE THIS TO A SECURE PIN (e.g. 'sumami2025!')
+export const ADMIN_PIN = 'admin123'; 
 
 // -----------------------------------------------------------------------------------------
 // YOCO PAYMENT CONFIGURATION
-// 1. Log into Yoco > Developers > Keys.
-// 2. Paste your Public Key below.
-// NOTE: You can now override this in the Admin Dashboard > Settings tab!
 // -----------------------------------------------------------------------------------------
 export const YOCO_PUBLIC_KEY = 'pk_test_7edcb7cdmW93zGPed3a4'; 
 
 // -----------------------------------------------------------------------------------------
 // DOWNLOAD LINKS
-// ⚠️ UPDATE THIS WITH YOUR REAL GOOGLE DRIVE/DROPBOX LINK
 // -----------------------------------------------------------------------------------------
 export const COOKBOOK_DOWNLOAD_URL = 'https://drive.google.com/file/d/YOUR_REAL_PDF_LINK_HERE/view?usp=sharing'; 
 
 // -----------------------------------------------------------------------------------------
 // IMAGE HOSTING CONFIGURATION
-// Currently, images are loaded from the old WordPress site.
-// TO MOVE TO SUPABASE/WEBP:
-// 1. Convert your images to .webp (smaller & faster).
-// 2. Upload them to a Supabase Storage bucket named 'products'.
-// 3. Update the BASE_URL below to your Supabase Public URL.
 // -----------------------------------------------------------------------------------------
 
-// CURRENT: WordPress Hotlinks
+// --- OPTION A: BACKUP (WordPress) ---
 const WP_BASE_2025 = 'https://www.biznizart.co.za/wp-content/uploads/2025/12';
 const WP_BASE_2026 = 'https://www.biznizart.co.za/wp-content/uploads/2026/01';
 
-// FUTURE: Supabase Example (Uncomment and use this structure later)
-// const BASE_URL = 'https://[PROJECT-ID].supabase.co/storage/v1/object/public/products';
+// --- OPTION B: ACTIVE (Supabase Storage) ---
+// pointing to your 'public-images' bucket
+const SUPABASE_STORAGE_URL = 'https://lnzloecnqcxknozokflr.supabase.co/storage/v1/object/public/public-images';
+
+// SWITCHED TO TRUE: The app is now looking for images in Supabase
+const USE_SUPABASE_IMAGES = true; 
 
 export const ASSETS = {
-  heroBg: `${WP_BASE_2026}/promote-fenugreek.png`,
-  lifestyle: `${WP_BASE_2026}/group-table.png`, 
+  // UPDATED: Now looking at the ROOT of public-images bucket (no 'site' folder)
+  
+  // Updated to 'Hero 1.webp'
+  heroBg: USE_SUPABASE_IMAGES 
+    ? `${SUPABASE_STORAGE_URL}/Hero%201.webp` 
+    : `${WP_BASE_2026}/promote-fenugreek.png`,
+    
+  // UPDATED: Using your specific file 'Cooking.webp'
+  lifestyle: USE_SUPABASE_IMAGES 
+    ? `${SUPABASE_STORAGE_URL}/Cooking.webp` 
+    : `${WP_BASE_2026}/group-table.png`, 
+
+  // Updated to 'Sumami Cookbook.webp'
+  cookbook: USE_SUPABASE_IMAGES 
+    ? `${SUPABASE_STORAGE_URL}/Sumami%20Cookbook.webp` 
+    : `${WP_BASE_2026}/Sumami-cookbook.png`,
+
   seal: 'https://cdn-icons-png.flaticon.com/512/3502/3502601.png',
-  cookbook: `${WP_BASE_2026}/Sumami-cookbook.png`,
-  // Using direct SVG for crisp rendering on all screens
-  yoco: 'https://upload.wikimedia.org/wikipedia/commons/1/16/Yoco_Logo.svg'
+  
+  // Updated Yoco Logo
+  yoco: USE_SUPABASE_IMAGES 
+    ? `${SUPABASE_STORAGE_URL}/Yoco.webp` 
+    : 'https://upload.wikimedia.org/wikipedia/commons/1/16/Yoco_Logo.svg'
 };
 
 // -----------------------------------------------------------------------------------------
-// PRODUCTS
-// SKU field added for Spreadsheet/Database identification.
+// PRODUCTS (SINGLE SAUCES ONLY)
 // -----------------------------------------------------------------------------------------
-
 export const PRODUCTS: Product[] = [
   {
     id: 'garlic-ginger',
@@ -71,7 +76,9 @@ export const PRODUCTS: Product[] = [
     subName: 'Sumami Brand Soya Sauce',
     description: 'The perfect balance of aromatic garlic and zesty ginger. Ideal for stir-frys and marinades.',
     price: 55, 
-    image: `${WP_BASE_2025}/garlic-ginger.png`,
+    image: USE_SUPABASE_IMAGES 
+      ? `${SUPABASE_STORAGE_URL}/Infused%20With%20Garlic%20&%20Ginger.webp` 
+      : `${WP_BASE_2025}/garlic-ginger.png`,
     category: 'sauce'
   },
   {
@@ -81,7 +88,9 @@ export const PRODUCTS: Product[] = [
     subName: 'Sumami Brand Soya Sauce',
     description: 'A refreshing burst of citrus paired with earthy coriander. Perfect for fish and salads.',
     price: 55,
-    image: `${WP_BASE_2025}/citrus-coriander.png`,
+    image: USE_SUPABASE_IMAGES 
+      ? `${SUPABASE_STORAGE_URL}/Infused%20With%20Citrus%20&%20Coriander.webp` 
+      : `${WP_BASE_2025}/citrus-coriander.png`,
     category: 'sauce'
   },
   {
@@ -91,7 +100,9 @@ export const PRODUCTS: Product[] = [
     subName: 'Sumami Brand Soya Sauce',
     description: 'For those who crave heat. A spicy kick that elevates any dish without overpowering the umami.',
     price: 55,
-    image: `${WP_BASE_2025}/Chillies.png`,
+    image: USE_SUPABASE_IMAGES 
+      ? `${SUPABASE_STORAGE_URL}/Infused%20With%20Chilli.webp` 
+      : `${WP_BASE_2025}/Chillies.png`,
     category: 'sauce'
   },
   {
@@ -101,7 +112,9 @@ export const PRODUCTS: Product[] = [
     subName: 'Sumami Brand Soya Sauce',
     description: 'Deep, rich, and meaty. Enhance your stews, gravies, and slow-cooked meals.',
     price: 55,
-    image: `${WP_BASE_2025}/beef-stock.png`,
+    image: USE_SUPABASE_IMAGES 
+      ? `${SUPABASE_STORAGE_URL}/Infused%20With%20Beef%20Stock.webp` 
+      : `${WP_BASE_2025}/beef-stock.png`,
     category: 'sauce'
   },
   {
@@ -111,7 +124,9 @@ export const PRODUCTS: Product[] = [
     subName: 'Sumami Brand Soya Sauce',
     description: 'A classic combination. Sharp cracked pepper meets natural sea salt.',
     price: 55,
-    image: `${WP_BASE_2025}/black-pepper-and-sea-salt.png`,
+    image: USE_SUPABASE_IMAGES 
+      ? `${SUPABASE_STORAGE_URL}/Infused%20With%20Black%20Pepper%20&%20Sea%20Salt.webp` 
+      : `${WP_BASE_2025}/black-pepper-and-sea-salt.png`,
     category: 'sauce'
   },
   {
@@ -119,9 +134,11 @@ export const PRODUCTS: Product[] = [
     sku: 'SUM-006',
     name: 'Infused With Roasted Sesame & Mustard',
     subName: 'Sumami Brand Soya Sauce',
-    description: 'Nutty, toasted notes with a mustard tang. incredible on sushi and roasted vegetables.',
+    description: 'Nutty, toasted notes with a mustard tang. Incredible on sushi and roasted vegetables.',
     price: 55,
-    image: `${WP_BASE_2025}/sesame-mustard.png`,
+    image: USE_SUPABASE_IMAGES 
+      ? `${SUPABASE_STORAGE_URL}/Infused%20With%20Roasted%20Sesame%20&%20Mustard%20Seeds.webp` 
+      : `${WP_BASE_2025}/sesame-mustard.png`,
     category: 'sauce'
   },
   {
@@ -131,11 +148,16 @@ export const PRODUCTS: Product[] = [
     subName: 'Sumami Brand Soya Sauce',
     description: 'A warm, nutty profile with hints of maple. Transforms curries and stews into rich, complex dishes.',
     price: 55,
-    image: `${WP_BASE_2025}/fenugreek.png`,
+    image: USE_SUPABASE_IMAGES 
+      ? `${SUPABASE_STORAGE_URL}/Fenugreek%20Bottled.webp` 
+      : `${WP_BASE_2025}/fenugreek.png`,
     category: 'sauce'
   }
 ];
 
+// -----------------------------------------------------------------------------------------
+// BUNDLES (CURATED COLLECTIONS)
+// -----------------------------------------------------------------------------------------
 export const BUNDLES: Product[] = [
   {
     id: 'starter-pack',
@@ -144,7 +166,9 @@ export const BUNDLES: Product[] = [
     subName: 'Build Your Own 3-Pack',
     description: 'Choose your top 3 flavours. The perfect introduction to Sumami Brand.',
     price: 315, 
-    image: `${WP_BASE_2025}/sumami-and-stews.png`,
+    image: USE_SUPABASE_IMAGES 
+      ? `${SUPABASE_STORAGE_URL}/The%20Starter%20Trio.webp` 
+      : `${WP_BASE_2025}/sumami-and-stews.png`,
     category: 'bundle'
   },
   {
@@ -154,8 +178,9 @@ export const BUNDLES: Product[] = [
     subName: 'Full Range (7 Bottles)',
     description: 'Complete your kitchen arsenal. One of every infusion. The ultimate gift for foodies.',
     price: 535, 
-    image: `${WP_BASE_2026}/SOYA-MIXED-FLAVOUR-7PACK.png`,
-    category: 'bundle',
-    highlight: true
+    image: USE_SUPABASE_IMAGES 
+      ? `${SUPABASE_STORAGE_URL}/Master%20Chef%20Collection.webp` 
+      : `${WP_BASE_2026}/SOYA-MIXED-FLAVOUR-7PACK.png`,
+    category: 'bundle'
   }
 ];
