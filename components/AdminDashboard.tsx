@@ -1,61 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lock, Download, Database, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, Globe, Share2, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap } from 'lucide-react';
+import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
-import { ADMIN_PIN } from '../constants';
 import { StoreSettings } from '../types';
 
 interface AdminDashboardProps {
   onClose: () => void;
-  onSettingsUpdated?: () => void; // New optional prop
+  onSettingsUpdated?: () => void;
 }
 
-// Mock Data for Preview Mode
-const MOCK_ORDERS = [
-  {
-    id: 1024,
-    created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 mins ago
-    customer_name: "Sarah Jenkins",
-    email: "sarah.j@example.com",
-    phone: "082 555 1234",
-    address_full: "12 Palm Ave, Durban North, 4051",
-    items: [
-      { quantity: 2, name: "Infused With Garlic & Ginger", variant: "3-Pack", price: 315, sku: "SUM-001" },
-      { quantity: 1, name: "BONUS: Beef Stock", variant: "3-Pack", price: 0, is_bonus: true, sku: "SUM-BONUS-BEEF" }
-    ],
-    total_amount: 630.00,
-    status: "paid"
-  },
-  {
-    id: 1023,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-    customer_name: "Mike Ross",
-    email: "mike.ross@law.co.za",
-    phone: "071 222 9988",
-    address_full: "45 West St, Sandton, Johannesburg, 2196",
-    items: [
-      { quantity: 1, name: "Master Chef Collection", variant: "7-Pack", price: 535, sku: "SUM-BUN-7" }
-    ],
-    total_amount: 535.00,
-    status: "shipped",
-    tracking_number: "THE123456789",
-    courier_name: "The Courier Guy",
-    tracking_url: "https://thecourierguy.co.za"
-  }
-];
-
+// Allowed Admin Email - Hardcoded for security
 const ALLOWED_ADMIN_EMAIL = 'waldeckwayne@gmail.com';
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpdated }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isDemoMode, setIsDemoMode] = useState(false);
   
-  // Login State
-  const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password');
-  const [pin, setPin] = useState('');
-  const [email, setEmail] = useState(ALLOWED_ADMIN_EMAIL);
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpLoading, setOtpLoading] = useState(false);
+  // Auth State
+  const [authStep, setAuthStep] = useState<'init' | 'sending' | 'verify'>('init');
+  const [serverCode, setServerCode] = useState<string | null>(null);
+  const [inputCode, setInputCode] = useState('');
   const [error, setError] = useState('');
   
   // Dashboard Data State
@@ -68,7 +31,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
   const [trackingInput, setTrackingInput] = useState({ courier: 'The Courier Guy', code: '', url: '' });
   const [isSendingTracking, setIsSendingTracking] = useState(false);
   
-  // View State: 'active' | 'history' | 'analytics' | 'settings'
+  // View State
   const [viewTab, setViewTab] = useState<'active' | 'history' | 'analytics' | 'settings'>('active');
 
   // Filter States
@@ -99,35 +62,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
 
   // Check for existing session on mount
   useEffect(() => {
-    if (supabase) {
-        supabase.auth.getSession().then(({ data: { session } }: any) => {
-            if (session) {
-                // Verify Email Match
-                if (session.user?.email?.toLowerCase() === ALLOWED_ADMIN_EMAIL.toLowerCase()) {
-                    setIsAuthenticated(true);
-                    fetchOrders();
-                    fetchSettings();
-                } else {
-                    supabase.auth.signOut();
-                    setError("Unauthorized email address.");
-                }
-            }
-        });
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
-            if (session) {
-                if (session.user?.email?.toLowerCase() === ALLOWED_ADMIN_EMAIL.toLowerCase()) {
-                    setIsAuthenticated(true);
-                    fetchOrders();
-                    fetchSettings();
-                } else {
-                     supabase.auth.signOut();
-                     setIsAuthenticated(false);
-                     setError("Unauthorized email address.");
-                }
-            }
-        });
-        return () => subscription.unsubscribe();
+    // If we previously authenticated in this session, skip login
+    if (sessionStorage.getItem('sumami_admin_auth') === 'true') {
+        setIsAuthenticated(true);
+        fetchOrders();
+        fetchSettings();
     }
   }, []);
 
@@ -153,51 +92,55 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
     });
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  // --- SECURITY: SEND OTP ---
+  const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!supabase) {
+        setError("Database connection failed.");
+        return;
+    }
+
+    setAuthStep('sending');
     setError('');
 
-    if (pin === ADMIN_PIN) {
-      setIsAuthenticated(true);
-      fetchOrders();
-      fetchSettings();
-    } else if (pin === '0000000000') {
-      setIsAuthenticated(true);
-      setIsDemoMode(true);
-      setOrders(MOCK_ORDERS);
-      calculateStats(MOCK_ORDERS);
-    } else {
-      setError('Invalid Password');
+    // 1. Generate 6-Digit Code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setServerCode(code); // Store securely in memory
+
+    try {
+        // 2. Call Edge Function to Email the Code
+        const { error: fnError } = await supabase.functions.invoke('send-admin-otp', {
+            body: {
+                email: ALLOWED_ADMIN_EMAIL,
+                code: code
+            }
+        });
+
+        if (fnError) throw fnError;
+
+        // 3. Move to Verify Step
+        setAuthStep('verify');
+
+    } catch (err: any) {
+        console.error("OTP Error:", err);
+        setError("Failed to send email. Check Supabase logs.");
+        setAuthStep('init');
     }
   };
 
-  const handleOtpLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!supabase) {
-        setError("Supabase not configured. Cannot send OTP.");
-        return;
-    }
-
-    if (email.toLowerCase() !== ALLOWED_ADMIN_EMAIL.toLowerCase()) {
-        setError(`Access restricted. Only ${ALLOWED_ADMIN_EMAIL} can login.`);
-        return;
-    }
-
-    setError('');
-    setOtpLoading(true);
-
-    try {
-        const { error } = await supabase.auth.signInWithOtp({
-            email,
-            options: { shouldCreateUser: true } // Allow user creation for this admin email
-        });
-        if (error) throw error;
-        setOtpSent(true);
-    } catch (err: any) {
-        setError(err.message || "Failed to send login link.");
-    } finally {
-        setOtpLoading(false);
-    }
+  // --- SECURITY: VERIFY OTP ---
+  const handleVerifyCode = (e: React.FormEvent) => {
+      e.preventDefault();
+      
+      if (inputCode === serverCode) {
+          setIsAuthenticated(true);
+          sessionStorage.setItem('sumami_admin_auth', 'true'); // Keep logged in for session
+          fetchOrders();
+          fetchSettings();
+      } else {
+          setError("Invalid code. Please try again.");
+          setInputCode('');
+      }
   };
 
   const fetchOrders = async () => {
@@ -251,8 +194,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
   const fetchSettings = async () => {
     if (!supabase) return;
     try {
-      // Assuming ID 1 is the main settings row
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('store_settings')
         .select('*')
         .single();
@@ -260,7 +202,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
       if (data) {
         setSettings({
             ...data,
-            // Ensure strings are not null for inputs
             yoco_test_key: data.yoco_test_key || '',
             yoco_live_key: data.yoco_live_key || '',
             facebook_url: data.facebook_url || '',
@@ -279,10 +220,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
     if (!supabase) return;
     setSavingSettings(true);
     try {
-        // Upsert logic for ID 1
-        // CRITICAL FIX: Trim whitespace from keys to prevent " pk_test" errors
         const { error } = await supabase.from('store_settings').upsert({
-            id: 1, // Always update row 1
+            id: 1, 
             yoco_test_key: settings.yoco_test_key.trim(),
             yoco_live_key: settings.yoco_live_key.trim(),
             is_live_mode: settings.is_live_mode,
@@ -295,7 +234,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
 
         if (error) throw error;
 
-        // TRIGGER APP REFRESH
         if (onSettingsUpdated) {
             onSettingsUpdated();
         }
@@ -310,10 +248,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
 
   const handleSendTestEmail = async () => {
     if (!supabase) return;
-    
-    // Prompt user for destination email
     const targetEmail = prompt("Enter the email address to send the test invoice to:", "admin@soyasauce.co.za");
-    if (!targetEmail) return; // Cancelled
+    if (!targetEmail) return; 
 
     setSendingTestEmail(true);
     try {
@@ -340,13 +276,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
     if (e) e.stopPropagation();
     const newStatus = currentStatus === 'shipped' ? 'paid' : 'shipped';
     
-    // Optimistic Update
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder((prev: any) => ({ ...prev, status: newStatus }));
     }
 
-    if (!isDemoMode && supabase) {
+    if (supabase) {
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
@@ -354,7 +289,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
       
       if (error) {
         console.error("Failed to update status", error);
-        // Revert
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: currentStatus } : o));
       }
     }
@@ -368,21 +302,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
 
     setIsSendingTracking(true);
     try {
-        if (!isDemoMode && supabase) {
-            // 1. Update Order in DB
+        if (supabase) {
             const { error } = await supabase
                 .from('orders')
                 .update({ 
                     tracking_number: trackingInput.code,
                     courier_name: trackingInput.courier,
                     tracking_url: trackingInput.url,
-                    status: 'shipped' // Auto mark as shipped
+                    status: 'shipped' 
                 })
                 .eq('id', selectedOrder.id);
             
             if (error) throw error;
 
-            // 2. Trigger Shipping Email via Edge Function
             await supabase.functions.invoke('resend-shipping-email', {
                 body: {
                   customerName: selectedOrder.customer_name,
@@ -395,7 +327,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
             });
         }
         
-        // 3. Update Local State
         const updatedOrder = { 
             ...selectedOrder, 
             tracking_number: trackingInput.code,
@@ -487,7 +418,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
     return true;
   });
 
-  // ANALYTICS HELPER
   const getTopLocations = () => {
      const cities: {[key:string]: number} = {};
      analyticsData.forEach(v => {
@@ -507,121 +437,102 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
       return { mobile, desktop };
   };
 
+  // --- LOGIN SCREEN ---
   if (!isAuthenticated) {
     return (
       <div className="fixed inset-0 z-[100] bg-gray-900 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full text-center">
-          <div className="bg-amber-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-8 h-8 text-amber-600" />
-          </div>
-          <h2 className="text-2xl font-bold mb-2">Admin Access</h2>
-          <p className="text-gray-500 mb-6">Enter password to view sales data.<br/><span className="text-xs text-gray-400">(Hint: Use 0000000000 for Preview Mode)</span></p>
+        <div className="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full text-center relative overflow-hidden">
           
-          {loginMethod === 'password' ? (
-              <form onSubmit={handleLogin} className="space-y-4">
-                <input 
-                  type="password" 
-                  className="w-full text-lg border-2 border-gray-200 rounded-lg py-3 px-4 focus:border-amber-500 outline-none transition-all placeholder:text-gray-300"
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value)}
-                  placeholder="Enter Password"
-                  autoFocus
-                />
-                {error && <p className="text-red-500 text-sm font-bold animate-pulse">{error}</p>}
-                <div className="flex gap-2">
-                  <button 
-                    type="button" 
-                    onClick={onClose}
-                    className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-lg"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="flex-1 py-3 bg-gray-900 text-white font-bold rounded-lg hover:bg-black"
-                  >
-                    Unlock
-                  </button>
-                </div>
-              </form>
-          ) : (
-              <form onSubmit={handleOtpLogin} className="space-y-4">
-                {otpSent ? (
-                    <div className="bg-green-50 text-green-800 p-4 rounded-lg text-sm mb-4 border border-green-200">
-                        <p className="font-bold mb-1">Magic Link Sent!</p>
-                        <p>Check your email ({email}) for the login link.</p>
-                        <p className="text-xs mt-2 text-green-600">Waiting for you to click the link...</p>
-                    </div>
-                ) : (
-                    <>
-                        <input 
-                        type="email" 
-                        className="w-full text-lg border-2 border-gray-200 rounded-lg py-3 px-4 focus:border-amber-500 outline-none transition-all placeholder:text-gray-300"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="admin@soyasauce.co.za"
-                        required
-                        />
-                        {error && <p className="text-red-500 text-sm font-bold animate-pulse">{error}</p>}
-                        <button 
-                        type="submit" 
-                        disabled={otpLoading}
-                        className="w-full py-3 bg-gray-900 text-white font-bold rounded-lg hover:bg-black flex items-center justify-center gap-2"
-                        >
-                            {otpLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Mail className="w-5 h-5" />}
-                            {otpLoading ? 'Sending...' : 'Send Magic Link'}
-                        </button>
-                    </>
-                )}
-                {!otpSent && (
+          <div className="bg-amber-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 relative z-10">
+            <ShieldCheck className="w-10 h-10 text-amber-600" />
+          </div>
+          
+          <h2 className="text-2xl font-black mb-2 text-gray-900 relative z-10">Admin Access</h2>
+          
+          {authStep === 'init' && (
+              <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                  <p className="text-gray-500 text-sm mb-6">
+                    For enhanced security, we will send a <strong>6-digit verification code</strong> to your registered email address.
+                  </p>
+                  <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-800 mb-6 flex items-center gap-2 text-left">
+                      <Mail className="w-4 h-4 shrink-0" />
+                      <span>Sending to: <strong>{ALLOWED_ADMIN_EMAIL}</strong></span>
+                  </div>
+                  
+                  {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{error}</div>}
+
+                  <div className="flex gap-2">
                     <button 
                         type="button" 
                         onClick={onClose}
-                        className="w-full py-2 text-gray-500 font-bold hover:bg-gray-100 rounded-lg"
+                        className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-xl"
                     >
                         Cancel
                     </button>
-                )}
-              </form>
+                    <button 
+                        onClick={handleSendCode}
+                        className="flex-1 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-black shadow-lg flex items-center justify-center gap-2"
+                    >
+                        Send Code <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+              </div>
           )}
 
-          <div className="mt-6 pt-6 border-t border-gray-100">
-             <button 
-                onClick={() => {
-                    setLoginMethod(prev => prev === 'password' ? 'otp' : 'password');
-                    setError('');
-                    setOtpSent(false);
-                }}
-                className="text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline flex items-center justify-center gap-1 w-full"
-             >
-                {loginMethod === 'password' ? (
-                    <>
-                       <Mail className="w-3 h-3" /> Use Secure Email Login
-                    </>
-                ) : (
-                    <>
-                       <Key className="w-3 h-3" /> Use Password / PIN
-                    </>
-                )}
-             </button>
-          </div>
+          {authStep === 'sending' && (
+              <div className="py-8 animate-in zoom-in duration-300">
+                  <RefreshCw className="w-12 h-12 text-amber-600 animate-spin mx-auto mb-4" />
+                  <p className="font-bold text-gray-700">Sending Secure Code...</p>
+              </div>
+          )}
+
+          {authStep === 'verify' && (
+              <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                  <p className="text-gray-500 text-sm mb-4">
+                    Enter the 6-digit code sent to your email.
+                  </p>
+                  <form onSubmit={handleVerifyCode}>
+                      <input 
+                        type="text" 
+                        maxLength={6}
+                        className="w-full text-center text-3xl font-mono tracking-[0.5em] border-2 border-gray-200 rounded-xl py-4 px-2 focus:border-amber-500 outline-none transition-all placeholder:text-gray-200 mb-4"
+                        value={inputCode}
+                        onChange={(e) => setInputCode(e.target.value.replace(/\D/g, ''))} // Numbers only
+                        placeholder="000000"
+                        autoFocus
+                      />
+                      
+                      {error && <p className="text-red-500 text-sm font-bold animate-pulse mb-4">{error}</p>}
+                      
+                      <button 
+                        type="submit" 
+                        className="w-full py-4 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-lg mb-3"
+                      >
+                        Verify & Unlock
+                      </button>
+                  </form>
+                  <button onClick={() => { setAuthStep('init'); setError(''); }} className="text-xs text-gray-400 hover:text-gray-600 underline">
+                      Resend Code
+                  </button>
+              </div>
+          )}
 
         </div>
       </div>
     );
   }
 
+  // --- MAIN DASHBOARD CONTENT (Same as before) ---
   return (
     <div className="fixed inset-0 z-[100] bg-gray-100 overflow-auto no-print">
       {/* Navbar */}
       <div className="bg-white border-b sticky top-0 z-10 px-6 py-4 flex justify-between items-center shadow-sm no-print">
         <div className="flex items-center gap-3">
-          <div className={`bg-amber-600 text-white p-2 rounded-lg ${isDemoMode ? 'bg-amber-400' : ''}`}>
-            {isDemoMode ? <Eye className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+          <div className="bg-amber-600 text-white p-2 rounded-lg">
+            <Lock className="w-5 h-5" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">Store Dashboard</h1>
-            {isDemoMode && <span className="text-xs font-bold text-amber-600 uppercase tracking-wide">Preview Mode (Mock Data)</span>}
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -633,7 +544,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
             <span className="hidden sm:inline">Back to Store</span>
           </button>
 
-          {!isDemoMode && viewTab !== 'settings' && viewTab !== 'analytics' && (
+          {viewTab !== 'settings' && viewTab !== 'analytics' && (
             <button onClick={fetchOrders} className="p-2 hover:bg-gray-100 rounded-full" title="Refresh">
               <RefreshCw className={`w-5 h-5 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
             </button>
