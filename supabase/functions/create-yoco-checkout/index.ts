@@ -1,5 +1,5 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 declare const Deno: {
@@ -14,56 +14,51 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // 1. Handle CORS Preflight - IMMEDIATE RETURN
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
 
   try {
     console.log("------------------------------------------------------------------");
     console.log("🚀 Yoco Checkout Function Triggered");
 
-    // 1. Parse Body
+    // 2. Parse Body safely
     let body;
     try {
-      body = await req.json();
+      const text = await req.text(); // Read text first
+      if (!text) throw new Error("Empty body");
+      body = JSON.parse(text);
     } catch (e) {
-      throw new Error("Invalid JSON body");
+      console.error("Body Parse Error:", e);
+      throw new Error("Invalid or empty JSON body received.");
     }
 
     const { items, successUrl, cancelUrl } = body;
-    console.log(`📦 Items: ${items?.length}, SuccessURL: ${successUrl}`);
 
+    // 3. Validation
     if (!items || !Array.isArray(items) || items.length === 0) {
-      throw new Error("Invalid cart items provided.");
+      throw new Error("Invalid cart items provided (Empty or not an array).");
     }
 
-    // 2. Init Supabase (Service Role)
+    // 4. Init Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!supabaseUrl || !supabaseKey) {
-       console.error("❌ Missing Supabase Env Vars");
-       throw new Error("Server Misconfiguration: Missing DB Keys");
+       throw new Error("Server Misconfiguration: Missing DB Keys in Edge Function environment.");
     }
 
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
-    // 3. Get Store Settings
-    // Use maybeSingle() to avoid error if table is empty
+    // 5. Get Settings
     const { data: settings, error: dbError } = await supabaseClient
         .from('store_settings')
         .select('*')
         .maybeSingle();
 
-    if (dbError) {
-        console.error("❌ DB Error:", dbError);
-        throw new Error(`Database Error: ${dbError.message}`);
-    }
-
-    if (!settings) {
-        console.error("❌ Settings Table Empty");
-        // Fallback or Error? Error is safer.
-        throw new Error("Store Settings not found. Please run the SQL setup script.");
-    }
+    if (dbError) throw new Error(`Database Error: ${dbError.message}`);
+    if (!settings) throw new Error("Store Settings not initialized in database.");
 
     const isLive = settings.is_live_mode;
     const secretKey = isLive ? settings.yoco_live_key : settings.yoco_test_key;
@@ -71,18 +66,17 @@ serve(async (req) => {
     console.log(`🔐 Mode: ${isLive ? 'LIVE' : 'TEST'}`);
     
     if (!secretKey || !secretKey.trim().startsWith('sk_')) {
-        console.error("❌ Invalid Secret Key format");
-        throw new Error(`Invalid Payment Key. Check Admin Dashboard settings.`);
+        throw new Error(`Invalid Payment Key. Current Mode: ${isLive ? 'LIVE' : 'TEST'}. Key should start with 'sk_'.`);
     }
 
-    // 4. Calculate Total
+    // 6. Calculate Total
     const amountInCents = items.reduce((sum: number, item: any) => {
         return sum + (item.price * item.quantity);
     }, 0);
     
-    console.log(`💰 Total Cents: ${amountInCents}`);
+    console.log(`💰 Processing: R${(amountInCents/100).toFixed(2)}`);
 
-    // 5. Call Yoco API
+    // 7. Call Yoco
     const yocoResponse = await fetch('https://payments.yoco.com/api/checkouts', {
       method: 'POST',
       headers: {
@@ -104,22 +98,24 @@ serve(async (req) => {
     const yocoData = await yocoResponse.json();
 
     if (!yocoResponse.ok) {
-        console.error("❌ Yoco API Error:", yocoData);
-        throw new Error(yocoData.message || "Yoco rejected the checkout creation.");
+        console.error("❌ Yoco API Rejected:", yocoData);
+        throw new Error(yocoData.message || "Yoco rejected the checkout creation. Check your keys.");
     }
 
-    console.log("✅ Checkout Created:", yocoData.redirectUrl);
+    console.log("✅ Redirect generated:", yocoData.redirectUrl);
 
+    // 8. Success Response
     return new Response(JSON.stringify({ redirectUrl: yocoData.redirectUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200
     });
 
   } catch (error: any) {
-    console.error("❌ Critical Function Error:", error.message);
+    console.error("❌ Critical Error:", error.message);
+    // 9. Error Response - MUST HAVE CORS HEADERS
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400, // Return 400 so client can read JSON message
+      status: 400,
     });
   }
 });
