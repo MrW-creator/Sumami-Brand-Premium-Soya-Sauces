@@ -1,18 +1,19 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database } from 'lucide-react';
+import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database, CreditCard } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { StoreSettings } from '../types';
 
 interface AdminDashboardProps {
   onClose: () => void;
   onSettingsUpdated?: () => void;
+  onAddTestProduct: () => void;
 }
 
 // Allowed Admin Email - Hardcoded for security
 const ALLOWED_ADMIN_EMAIL = 'waldeckwayne@gmail.com';
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpdated }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpdated, onAddTestProduct }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   // Auth State
@@ -849,6 +850,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                              {savingSettings ? 'Saving...' : 'Save Settings'}
                          </button>
 
+                         {/* NEW: LIVE TRANSACTION TESTING BUTTON */}
+                         <div className="bg-amber-50 p-4 rounded-xl border border-amber-200">
+                             <div className="flex items-center justify-between mb-2">
+                                 <div>
+                                     <h5 className="font-bold text-amber-900 text-sm flex items-center gap-1">
+                                        <CreditCard className="w-4 h-4" /> Live Payment Test
+                                     </h5>
+                                     <p className="text-xs text-amber-800">Verify your live key with a real transaction.</p>
+                                 </div>
+                             </div>
+                             <button
+                                onClick={onAddTestProduct}
+                                className="w-full px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
+                             >
+                                <ShoppingCartIcon className="w-4 h-4" />
+                                Add R3.00 Test Item to Cart
+                             </button>
+                             <p className="text-[10px] text-amber-700 mt-2 text-center">
+                                This adds a hidden "Live Test Product" to your cart and takes you to checkout.
+                             </p>
+                         </div>
+
                          {/* TEST EMAIL BUTTON */}
                          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center justify-between">
                              <div>
@@ -1143,5 +1166,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
     </div>
   );
 };
+
+// --- ICON HELPER FOR TEST BUTTON ---
+const ShoppingCartIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="8" cy="21" r="1"></circle>
+      <circle cx="19" cy="21" r="1"></circle>
+      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path>
+    </svg>
+);
 
 export default AdminDashboard;

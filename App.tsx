@@ -288,6 +288,25 @@ const App: React.FC = () => {
     }
   };
 
+  // --- SPECIAL ADMIN: ADD TEST PRODUCT ---
+  const handleAddTestProduct = () => {
+    const testProduct: Product = {
+        id: 'live-test-prod',
+        sku: 'TEST-LIVE-001',
+        name: 'Live Test Product',
+        subName: 'Admin Verification',
+        description: 'Hidden item for testing live Yoco payments.',
+        price: 3, // R3.00
+        image: 'https://placehold.co/400x400/22c55e/ffffff?text=TEST', // Simple placeholder
+        category: 'sauce',
+        badge: 'Admin Only'
+    };
+    
+    addToCart(testProduct, 1);
+    setIsAdminOpen(false); // Close admin panel
+    setIsCartOpen(true); // Open cart to proceed to checkout
+  };
+
   const handleBonusSelect = (product: Product, variant: string) => {
       // Explicitly adding as bonus (isBonus=true, Price=0)
       addToCart(product, 1, undefined, variant, 0, true);
@@ -605,6 +624,7 @@ const App: React.FC = () => {
         <AdminDashboard 
             onClose={() => setIsAdminOpen(false)} 
             onSettingsUpdated={fetchStoreSettings} // PASS REFRESH FUNCTION
+            onAddTestProduct={handleAddTestProduct} // Pass the handler
         />
       )}
 
