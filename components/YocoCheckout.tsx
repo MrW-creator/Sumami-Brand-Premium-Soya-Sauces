@@ -211,6 +211,11 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
                     </div>
                  </div>
               </div>
+              
+              {/* DEBUG INFO */}
+              <p className="text-[10px] text-gray-300 mt-2 text-center">
+                 {isLive ? 'Live Key Active' : 'Test Key Active'} ({cleanKey.substring(0, 8)}...)
+              </p>
             </div>
 
           </form>

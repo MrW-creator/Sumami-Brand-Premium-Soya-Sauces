@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database, CreditCard } from 'lucide-react';
+import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database, CreditCard, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { StoreSettings } from '../types';
 
@@ -450,6 +450,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
       return { mobile, desktop };
   };
 
+  // --- HELPER FOR KEY VALIDATION ---
+  const isSecretKey = (key: string) => key.trim().startsWith('sk_');
+
   // --- LOGIN SCREEN ---
   if (!isAuthenticated) {
     return (
@@ -819,25 +822,33 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
 
                      {/* Keys */}
                      <div>
-                         <label className="block text-sm font-bold text-gray-700 mb-1">Yoco Test Key (pk_test_...)</label>
+                         <label className="block text-sm font-bold text-gray-700 mb-1">
+                            Yoco Public Key (Test Mode)
+                            <span className="block text-xs font-normal text-gray-400">Must start with <code className="bg-gray-100 px-1 rounded">pk_test_</code></span>
+                         </label>
                          <input 
                             type="text" 
-                            className="w-full border border-gray-300 rounded-lg p-3 font-mono text-sm bg-gray-50 focus:border-amber-500 focus:bg-white outline-none transition-all"
+                            className={`w-full border rounded-lg p-3 font-mono text-sm outline-none transition-all ${isSecretKey(settings.yoco_test_key) ? 'border-red-500 bg-red-50 text-red-900' : 'border-gray-300 bg-gray-50 focus:border-amber-500 focus:bg-white'}`}
                             value={settings.yoco_test_key}
                             onChange={(e) => setSettings(prev => ({...prev, yoco_test_key: e.target.value}))}
                             placeholder="pk_test_..."
                          />
+                         {isSecretKey(settings.yoco_test_key) && <p className="text-xs text-red-600 font-bold mt-1 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Warning: Do not use Secret Key (sk_) here!</p>}
                      </div>
                      
                      <div>
-                         <label className="block text-sm font-bold text-gray-700 mb-1">Yoco Live Key (pk_live_...)</label>
+                         <label className="block text-sm font-bold text-gray-700 mb-1">
+                            Yoco Public Key (Live Mode)
+                            <span className="block text-xs font-normal text-gray-400">Must start with <code className="bg-gray-100 px-1 rounded">pk_live_</code></span>
+                         </label>
                          <input 
                             type="text" 
-                            className="w-full border border-gray-300 rounded-lg p-3 font-mono text-sm bg-gray-50 focus:border-amber-500 focus:bg-white outline-none transition-all"
+                            className={`w-full border rounded-lg p-3 font-mono text-sm outline-none transition-all ${isSecretKey(settings.yoco_live_key) ? 'border-red-500 bg-red-50 text-red-900' : 'border-gray-300 bg-gray-50 focus:border-amber-500 focus:bg-white'}`}
                             value={settings.yoco_live_key}
                             onChange={(e) => setSettings(prev => ({...prev, yoco_live_key: e.target.value}))}
                             placeholder="pk_live_..."
                          />
+                         {isSecretKey(settings.yoco_live_key) && <p className="text-xs text-red-600 font-bold mt-1 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Warning: Do not use Secret Key (sk_) here!</p>}
                      </div>
 
                      <div className="pt-4 border-t flex flex-col gap-4">
@@ -850,26 +861,42 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                              {savingSettings ? 'Saving...' : 'Save Settings'}
                          </button>
 
-                         {/* NEW: LIVE TRANSACTION TESTING BUTTON */}
-                         <div className="bg-amber-50 p-4 rounded-xl border border-amber-200">
+                         {/* NEW: LIVE TRANSACTION TESTING BUTTON WITH IMPROVED FEEDBACK */}
+                         <div className={`p-4 rounded-xl border ${settings.is_live_mode ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
                              <div className="flex items-center justify-between mb-2">
                                  <div>
-                                     <h5 className="font-bold text-amber-900 text-sm flex items-center gap-1">
+                                     <h5 className={`font-bold text-sm flex items-center gap-1 ${settings.is_live_mode ? 'text-green-900' : 'text-amber-900'}`}>
                                         <CreditCard className="w-4 h-4" /> Live Payment Test
                                      </h5>
-                                     <p className="text-xs text-amber-800">Verify your live key with a real transaction.</p>
+                                     
+                                     {settings.is_live_mode ? (
+                                        <p className="text-xs text-green-800">Ready to verify live key with a real transaction.</p>
+                                     ) : (
+                                        <p className="text-xs text-amber-800 font-bold">⚠️ Switch to LIVE MODE above to test real payments.</p>
+                                     )}
                                  </div>
                              </div>
+                             
                              <button
                                 onClick={onAddTestProduct}
-                                className="w-full px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
+                                disabled={!settings.is_live_mode}
+                                className={`w-full px-4 py-2 font-bold text-sm rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm
+                                    ${settings.is_live_mode 
+                                        ? 'bg-green-600 hover:bg-green-700 text-white' 
+                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    }
+                                `}
                              >
                                 <ShoppingCartIcon className="w-4 h-4" />
-                                Add R3.00 Test Item to Cart
+                                {settings.is_live_mode ? 'Add R3.00 Test Item to Cart' : 'Enable Live Mode First'}
                              </button>
-                             <p className="text-[10px] text-amber-700 mt-2 text-center">
-                                This adds a hidden "Live Test Product" to your cart and takes you to checkout.
-                             </p>
+
+                             {settings.is_live_mode && isSecretKey(settings.yoco_live_key) && (
+                                <div className="mt-3 bg-red-100 border border-red-200 p-2 rounded text-red-800 text-xs flex items-center gap-2">
+                                    <AlertCircle className="w-4 h-4 shrink-0" />
+                                    <strong>Config Error:</strong> You have entered a Secret Key (sk_...) above. Please replace it with your Public Key (pk_...) to process payments.
+                                </div>
+                             )}
                          </div>
 
                          {/* TEST EMAIL BUTTON */}

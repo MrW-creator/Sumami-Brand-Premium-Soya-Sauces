@@ -114,9 +114,9 @@ const App: React.FC = () => {
            const rawKey = data.is_live_mode ? data.yoco_live_key : data.yoco_test_key;
            const key = rawKey ? rawKey.trim() : '';
            
-           if (key) {
-             setActiveYocoKey(key);
-           }
+           // ALWAYS set the key, even if empty, to ensure we don't hold onto a stale "test" key
+           setActiveYocoKey(key);
+           
            setStoreSettings(data);
            console.log("Store settings updated. Active Mode:", data.is_live_mode ? "LIVE" : "TEST");
         }
