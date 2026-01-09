@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database, CreditCard, AlertCircle, EyeOff, Beaker, Server } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
+import { PAYFAST_DEFAULTS } from '../constants';
 import { StoreSettings } from '../types';
 
 interface AdminDashboardProps {
@@ -42,8 +43,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
 
   // Settings State
   const [settings, setSettings] = useState<StoreSettings>({ 
-    yoco_test_key: '', 
-    yoco_live_key: '', 
+    payfast_merchant_id: '', 
+    payfast_merchant_key: '', 
     is_live_mode: false,
     facebook_url: '',
     instagram_url: '',
@@ -52,15 +53,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
     tiktok_url: ''
   });
   const [savingSettings, setSavingSettings] = useState(false);
-  const [sendingTestEmail, setSendingTestEmail] = useState(false);
   
   // UI State for Keys Visibility
-  const [showTestKey, setShowTestKey] = useState(false);
-  const [showLiveKey, setShowLiveKey] = useState(false);
-  
-  // Test Connection State
-  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'fail'>('idle');
-  const [connectionMsg, setConnectionMsg] = useState('');
+  const [showKey, setShowKey] = useState(false);
 
   // Stats
   const [stats, setStats] = useState({
@@ -202,8 +197,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
       if (data) {
         setSettings({
             ...data,
-            yoco_test_key: data.yoco_test_key || '',
-            yoco_live_key: data.yoco_live_key || '',
+            payfast_merchant_id: data.payfast_merchant_id || PAYFAST_DEFAULTS.merchant_id,
+            payfast_merchant_key: data.payfast_merchant_key || PAYFAST_DEFAULTS.merchant_key,
             facebook_url: data.facebook_url || '',
             instagram_url: data.instagram_url || '',
             pinterest_url: data.pinterest_url || '',
@@ -222,8 +217,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
     try {
         const { error } = await supabase.from('store_settings').upsert({
             id: 1, 
-            yoco_test_key: settings.yoco_test_key.trim(),
-            yoco_live_key: settings.yoco_live_key.trim(),
+            payfast_merchant_id: settings.payfast_merchant_id.trim(),
+            payfast_merchant_key: settings.payfast_merchant_key.trim(),
             is_live_mode: settings.is_live_mode,
             facebook_url: settings.facebook_url?.trim(),
             instagram_url: settings.instagram_url?.trim(),
@@ -240,42 +235,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
     } finally {
         setSavingSettings(false);
     }
-  };
-
-  // --- NEW: Test Connection Function ---
-  const handleTestConnection = async () => {
-     if (!supabase) return;
-     setConnectionStatus('testing');
-     setConnectionMsg('Pinging Payment Function...');
-     
-     try {
-         // We send a dummy payload that should fail validation but PROVE the function is reachable
-         const { error: fnError } = await supabase.functions.invoke('create-yoco-checkout', {
-             body: { items: [], successUrl: 'test', cancelUrl: 'test' }
-         });
-
-         // We EXPECT an error about "Invalid cart items" if the function works.
-         // If we get a fetch error or 500, then it's broken.
-         
-         if (fnError) {
-             // Check if it's our expected validation error
-             const msg = fnError.message || JSON.stringify(fnError);
-             if (msg.includes("Invalid cart items") || msg.includes("body")) {
-                 setConnectionStatus('success');
-                 setConnectionMsg('Success! Function is online.');
-             } else {
-                 throw new Error(msg);
-             }
-         } else {
-             // Unexpected success with empty items? Still means it's online.
-             setConnectionStatus('success');
-             setConnectionMsg('Online (Unexpected success response)');
-         }
-
-     } catch (err: any) {
-         setConnectionStatus('fail');
-         setConnectionMsg(`Failed: ${err.message}`);
-     }
   };
 
   const toggleShippingStatus = async (orderId: number, currentStatus: string, e?: React.MouseEvent) => {
@@ -363,8 +322,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
       analyticsData.forEach(v => { v.device_type === 'Mobile' ? mobile++ : desktop++; });
       return { mobile, desktop };
   };
-
-  const isPublicKey = (key: string) => key.trim().startsWith('pk_');
 
   // --- LOGIN SCREEN ---
   if (!isAuthenticated) {
@@ -474,31 +431,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-2xl mx-auto">
                  <div className="flex items-center gap-4 mb-6 border-b pb-4">
                      <div className="bg-gray-100 p-3 rounded-full"><Key className="w-8 h-8 text-gray-700" /></div>
-                     <div><h2 className="text-2xl font-black text-gray-900">Store Configuration</h2><p className="text-gray-500">Manage Yoco API Keys & Redirect Checkout.</p></div>
+                     <div><h2 className="text-2xl font-black text-gray-900">Store Configuration</h2><p className="text-gray-500">Manage PayFast Integration (No Backend Required).</p></div>
                  </div>
 
                  <div className="space-y-6">
-                     {/* --- SERVER STATUS CHECK --- */}
-                     <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col gap-3">
-                        <div className="flex items-center justify-between">
-                            <h4 className="font-bold text-gray-700 flex items-center gap-2"><Server className="w-4 h-4"/> Backend Status Check</h4>
-                            <span className={`text-xs font-bold px-2 py-1 rounded ${connectionStatus === 'success' ? 'bg-green-100 text-green-700' : connectionStatus === 'fail' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                                {connectionStatus === 'idle' ? 'Not Tested' : connectionStatus === 'testing' ? 'Testing...' : connectionStatus === 'success' ? 'ONLINE' : 'OFFLINE'}
-                            </span>
-                        </div>
-                        <p className="text-xs text-gray-500">Click below to check if the Payment Function is deployed and reachable.</p>
-                        <div className="flex items-center gap-2">
-                             <button onClick={handleTestConnection} disabled={connectionStatus === 'testing'} className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1.5 rounded text-sm font-bold transition-colors">
-                                 Test Server Connection
-                             </button>
-                             {connectionMsg && <span className={`text-xs ${connectionStatus === 'fail' ? 'text-red-600 font-mono' : 'text-green-600'}`}>{connectionMsg}</span>}
-                        </div>
-                     </div>
-
+                     
                      <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200">
                          <div>
                              <h4 className="font-bold text-gray-900">Payment Gateway Mode</h4>
-                             <p className="text-xs text-gray-500 mt-1">{settings.is_live_mode ? "Real money transactions enabled." : "Simulation only. No cards charged."}</p>
+                             <p className="text-xs text-gray-500 mt-1">{settings.is_live_mode ? "Live Transactions (Real Money)" : "Sandbox Mode (Testing)"}</p>
                          </div>
                          <button onClick={() => setSettings(prev => ({...prev, is_live_mode: !prev.is_live_mode}))} className={`flex items-center gap-3 px-5 py-3 rounded-xl font-bold transition-all shadow-sm border-2 ${settings.is_live_mode ? 'bg-green-50 border-green-500 text-green-700 hover:bg-green-100' : 'bg-yellow-50 border-yellow-400 text-yellow-700 hover:bg-yellow-100'}`}>
                             <span className={`relative flex h-3 w-3`}>
@@ -520,22 +461,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
 
                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-900 flex items-start gap-3">
                         <Lock className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-600" />
-                        <div><strong>Secret Key (sk_) Required</strong><p className="mt-1 mb-2 opacity-90">We now use the secure backend. Please enter your SECRET keys, not public keys.</p></div>
+                        <div><strong>PayFast Configuration</strong><p className="mt-1 mb-2 opacity-90">Enter your Merchant ID and Key. These are found in your PayFast dashboard.</p></div>
                      </div>
 
                      <div>
-                         <label className="block text-sm font-bold text-gray-700 mb-1">Yoco Secret Key (Test Mode)</label>
-                         <div className="relative">
-                            <input type={showTestKey ? "text" : "password"} className={`w-full border rounded-lg p-3 pr-12 font-mono text-sm outline-none transition-all ${isPublicKey(settings.yoco_test_key) ? 'border-red-500 bg-red-50 text-red-900' : 'border-gray-300 bg-gray-50 focus:border-amber-500 focus:bg-white'}`} value={settings.yoco_test_key} onChange={(e) => setSettings(prev => ({...prev, yoco_test_key: e.target.value}))} placeholder="sk_test_..." />
-                            <button type="button" onClick={() => setShowTestKey(!showTestKey)} className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">{showTestKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}</button>
-                         </div>
+                         <label className="block text-sm font-bold text-gray-700 mb-1">PayFast Merchant ID</label>
+                         <input type="text" className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 focus:border-amber-500 focus:bg-white outline-none" value={settings.payfast_merchant_id} onChange={(e) => setSettings(prev => ({...prev, payfast_merchant_id: e.target.value}))} placeholder="10000100" />
                      </div>
                      
                      <div>
-                         <label className="block text-sm font-bold text-gray-700 mb-1">Yoco Secret Key (Live Mode)</label>
+                         <label className="block text-sm font-bold text-gray-700 mb-1">PayFast Merchant Key</label>
                          <div className="relative">
-                            <input type={showLiveKey ? "text" : "password"} className={`w-full border rounded-lg p-3 pr-12 font-mono text-sm outline-none transition-all ${isPublicKey(settings.yoco_live_key) ? 'border-red-500 bg-red-50 text-red-900' : 'border-gray-300 bg-gray-50 focus:border-amber-500 focus:bg-white'}`} value={settings.yoco_live_key} onChange={(e) => setSettings(prev => ({...prev, yoco_live_key: e.target.value}))} placeholder="sk_live_..." />
-                            <button type="button" onClick={() => setShowLiveKey(!showLiveKey)} className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">{showLiveKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}</button>
+                            <input type={showKey ? "text" : "password"} className="w-full border border-gray-300 rounded-lg p-3 pr-12 bg-gray-50 focus:border-amber-500 focus:bg-white outline-none" value={settings.payfast_merchant_key} onChange={(e) => setSettings(prev => ({...prev, payfast_merchant_key: e.target.value}))} placeholder="46f0cd694581a" />
+                            <button type="button" onClick={() => setShowKey(!showKey)} className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">{showKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}</button>
                          </div>
                      </div>
 
@@ -569,17 +507,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                     ) : (
                     displayedOrders.map((order) => {
                         const isShipped = order.status === 'shipped';
+                        const isPending = order.status === 'pending_payment';
                         return (
                         <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                             <td className="px-6 py-4 whitespace-nowrap">
-                            <button onClick={(e) => toggleShippingStatus(order.id, order.status, e)} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-bold transition-all shadow-sm ${isShipped ? 'bg-green-100 border-green-200 text-green-700 hover:bg-green-200' : 'bg-white border-gray-300 text-gray-600 hover:bg-amber-50 hover:border-amber-300'}`}>
-                                {isShipped ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                                {isShipped ? 'Done' : 'Mark Done'}
+                            <button onClick={(e) => toggleShippingStatus(order.id, order.status, e)} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-bold transition-all shadow-sm ${isShipped ? 'bg-green-100 border-green-200 text-green-700 hover:bg-green-200' : isPending ? 'bg-yellow-100 border-yellow-300 text-yellow-700' : 'bg-white border-gray-300 text-gray-600 hover:bg-amber-50 hover:border-amber-300'}`}>
+                                {isShipped ? <CheckSquare className="w-4 h-4" /> : isPending ? <Clock className="w-4 h-4"/> : <Square className="w-4 h-4" />}
+                                {isShipped ? 'Done' : isPending ? 'Pending' : 'Mark Done'}
                             </button>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString()}</td>
                             <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-bold text-gray-900">{order.customer_name}</div><div className="text-xs text-gray-500">{order.email}</div></td>
-                            <td className="px-6 py-4"><div className="text-sm text-gray-700 max-w-xs truncate">{order.items.length} items</div></td>
+                            <td className="px-6 py-4"><div className="text-sm text-gray-700 max-w-xs truncate">{order.items?.length || 0} items</div></td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">R {order.total_amount?.toFixed(2)}</td>
                             <td className="px-6 py-4 whitespace-nowrap"><button onClick={() => setSelectedOrder(order)} className="text-blue-600 hover:text-blue-800 font-bold text-sm flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100"><Eye className="w-4 h-4" /> Invoice</button></td>
                         </tr>

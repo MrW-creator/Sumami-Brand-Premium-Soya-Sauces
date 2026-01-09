@@ -15,9 +15,14 @@ export const SUPABASE_CONFIG = {
 export const ADMIN_PIN = 'admin123'; 
 
 // -----------------------------------------------------------------------------------------
-// YOCO PAYMENT CONFIGURATION
+// PAYFAST CONFIGURATION (DEFAULTS)
 // -----------------------------------------------------------------------------------------
-export const YOCO_PUBLIC_KEY = 'pk_test_7edcb7cdmW93zGPed3a4'; 
+// Default Sandbox Credentials for immediate testing
+export const PAYFAST_DEFAULTS = {
+  merchant_id: '10000100',
+  merchant_key: '46f0cd694581a',
+  passphrase: ''
+};
 
 // -----------------------------------------------------------------------------------------
 // DOWNLOAD LINKS
@@ -59,10 +64,8 @@ export const ASSETS = {
 
   seal: 'https://cdn-icons-png.flaticon.com/512/3502/3502601.png',
   
-  // Updated Yoco Logo (lowercase 'yoco.webp')
-  yoco: USE_SUPABASE_IMAGES 
-    ? `${SUPABASE_STORAGE_URL}/yoco.webp` 
-    : 'https://upload.wikimedia.org/wikipedia/commons/1/16/Yoco_Logo.svg'
+  // Using PayFast Logo now
+  yoco: 'https://www.payfast.co.za/images/branding/payfast-logo.svg' 
 };
 
 // -----------------------------------------------------------------------------------------

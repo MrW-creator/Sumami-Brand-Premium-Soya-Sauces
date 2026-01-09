@@ -31,8 +31,11 @@ export interface CustomerDetails {
 
 export interface StoreSettings {
   id?: number;
-  yoco_test_key: string;
-  yoco_live_key: string;
+  // SWITCHED TO PAYFAST
+  payfast_merchant_id: string;
+  payfast_merchant_key: string;
+  payfast_passphrase?: string;
+  
   is_live_mode: boolean;
   facebook_url?: string;
   instagram_url?: string;
@@ -41,9 +44,9 @@ export interface StoreSettings {
   tiktok_url?: string;
 }
 
-// Window interface for Yoco SDK
+// Window interface (Cleaned up)
 declare global {
   interface Window {
-    YocoSDK: any;
+    // No SDKs needed for PayFast redirect
   }
 }

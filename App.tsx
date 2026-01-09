@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download, Info, Mail, Lock, BellRing, ArrowRight, Quote, ShieldCheck, CreditCard, Youtube } from 'lucide-react';
+import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download, Info, Mail, Lock, BellRing, ArrowRight, Quote, ShieldCheck, CreditCard, Youtube, Award, ThumbsUp } from 'lucide-react';
 import { supabase } from './lib/supabase/client';
-import { PRODUCTS, BUNDLES, ASSETS, COOKBOOK_DOWNLOAD_URL, YOCO_PUBLIC_KEY } from './constants';
+import { PRODUCTS, BUNDLES, ASSETS, COOKBOOK_DOWNLOAD_URL, PAYFAST_DEFAULTS } from './constants';
 import { Product, CartItem, CustomerDetails, StoreSettings } from './types';
 import Cart from './components/Cart';
-import YocoCheckout from './components/YocoCheckout';
+import PayFastCheckout from './components/PayFastCheckout';
 import BundleBuilder from './components/BundleBuilder';
 import LegalModal, { PolicyType } from './components/LegalModal';
 import AdminDashboard from './components/AdminDashboard';
@@ -29,7 +29,7 @@ const CUSTOMER_REVIEWS = [
   { name: "Lerato K.", text: "Super fast shipping. Got my order in 2 days to Joburg. Everything arrived safely.", rating: 4 },
   { name: "John D.", text: "The Starter Trio is great value. Will definitely be refilling soon. The Sesame Mustard is a winner.", rating: 5 },
   { name: "Emily S.", text: "Love the free bonuses. Made the glazed salmon recipe last night, yum! Highly recommend.", rating: 5 },
-  { name: "Thabo M.", text: "Secure payment via Yoco was easy. Great customer service on WhatsApp when I had a question.", rating: 5 },
+  { name: "Thabo M.", text: "Secure payment was easy. Great customer service on WhatsApp when I had a question.", rating: 5 },
   { name: "Lisa W.", text: "Citrus & Coriander is refreshing on summer salads. Such a unique flavour profile.", rating: 5 }
 ];
 
@@ -63,7 +63,11 @@ const App: React.FC = () => {
   const [lastOrder, setLastOrder] = useState<{items: CartItem[], total: number} | null>(null);
   
   // Dynamic Settings State
-  const [activeYocoKey, setActiveYocoKey] = useState<string>(YOCO_PUBLIC_KEY || '');
+  const [payFastSettings, setPayFastSettings] = useState<{id: string, key: string, isLive: boolean}>({
+      id: PAYFAST_DEFAULTS.merchant_id,
+      key: PAYFAST_DEFAULTS.merchant_key,
+      isLive: false
+  });
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
 
   // --- ANALYTICS TRACKING ---
@@ -98,7 +102,7 @@ const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // --- HANDLE RETURN FROM YOCO REDIRECT ---
+  // --- HANDLE RETURN FROM PAYMENT REDIRECT ---
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const paymentStatus = params.get('payment_status');
@@ -113,8 +117,10 @@ const App: React.FC = () => {
         setCustomerDetails(savedDetails);
         setLastOrder({ items: savedItems, total: total });
         
-        // Save to Supabase
-        saveOrderToSupabase(savedDetails, savedItems, total);
+        // We assume success if they hit this URL, update the order in DB if needed (advanced)
+        // For MVP, we trust the redirect flow. The initial saveOrder happened BEFORE redirect with status 'pending'
+        // Ideally we would update status to 'paid' here, but without an Order ID reference in URL it's tricky without auth.
+        // For now, we show success.
         
         // Clear storage & show success
         localStorage.removeItem('sumami_pending_order');
@@ -124,7 +130,7 @@ const App: React.FC = () => {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     } else if (paymentStatus === 'cancel') {
-      alert("Payment was cancelled or failed. You have returned to the checkout page.");
+      alert("Payment was cancelled. You have returned to the checkout page.");
       const stored = localStorage.getItem('sumami_pending_order');
       if (stored) {
          const { cartItems: savedItems, customerDetails: savedDetails } = JSON.parse(stored);
@@ -143,10 +149,12 @@ const App: React.FC = () => {
       try {
         const { data } = await supabase.from('store_settings').select('*').single();
         if (data) {
-           const rawKey = data.is_live_mode ? data.yoco_live_key : data.yoco_test_key;
-           const key = rawKey ? rawKey.trim() : '';
-           setActiveYocoKey(key);
            setStoreSettings(data);
+           setPayFastSettings({
+             id: data.payfast_merchant_id || PAYFAST_DEFAULTS.merchant_id,
+             key: data.payfast_merchant_key || PAYFAST_DEFAULTS.merchant_key,
+             isLive: data.is_live_mode
+           });
            console.log("Store settings updated. Active Mode:", data.is_live_mode ? "LIVE" : "TEST");
         }
       } catch (err) {
@@ -306,15 +314,15 @@ const App: React.FC = () => {
     }
   };
 
-  // --- SPECIAL ADMIN: ADD TEST PRODUCT ---
+  // --- SPECIAL ADMIN: ADD TEST PRODUCT (UPDATED FOR PAYFAST) ---
   const handleAddTestProduct = () => {
     const testProduct: Product = {
         id: 'live-test-prod',
         sku: 'TEST-LIVE-001',
         name: 'Live Test Product',
         subName: 'Admin Verification',
-        description: 'Hidden item for testing live Yoco payments.',
-        price: 3, // R3.00
+        description: 'Hidden item for testing live PayFast payments.',
+        price: 5, // R5.00 (PayFast Minimum)
         image: 'https://placehold.co/400x400/22c55e/ffffff?text=TEST',
         category: 'sauce',
         badge: 'Admin Only'
@@ -422,11 +430,13 @@ const App: React.FC = () => {
             items: orderItems,
             total_amount: finalTotal,
             discount_amount: 0,
-            status: 'paid',
-            payment_provider: 'yoco'
+            status: 'pending_payment', // New status for PayFast redirect
+            payment_provider: 'payfast'
         }]);
       if (error) throw error;
       
+      // We still try to send the email, although usually we'd wait for payment confirmation
+      // For MVP, sending it now ensures they get "Order Received" even if they drop off at payment
       await supabase.functions.invoke('resend-order-email', {
         body: {
           customerName: `${details.firstName} ${details.lastName}`,
@@ -442,8 +452,22 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDetailsSubmit = (e: React.FormEvent) => {
+  const handleDetailsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Save locally for retrieval after redirect
+    const pendingOrder = {
+        cartItems,
+        customerDetails,
+        total,
+        timestamp: Date.now()
+    };
+    localStorage.setItem('sumami_pending_order', JSON.stringify(pendingOrder));
+
+    // Save to Database BEFORE redirecting
+    await saveOrderToSupabase(customerDetails, cartItems, total);
+
+    // Proceed to Payment Step (Render PayFastCheckout)
     setCheckoutStep('payment');
   };
 
@@ -460,8 +484,7 @@ const App: React.FC = () => {
 
   // SUCCESS PAGE ... (Same as before)
   if (checkoutStep === 'success' && lastOrder) {
-     // ... [Success UI] ...
-     // Reusing the existing success UI structure
+     // ... [Success UI is preserved] ...
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
         {/* Success View */}
@@ -533,7 +556,7 @@ const App: React.FC = () => {
     );
   }
 
-  // --- MAIN RENDER (Unchanged except YocoCheckout props) ---
+  // --- MAIN RENDER ---
   return (
     <div className="font-sans text-gray-900 antialiased selection:bg-amber-200">
       
@@ -619,16 +642,16 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Yoco Payment Overlay - NOW USING REDIRECT FLOW */}
+      {/* PayFast Payment Overlay - REPLACING YOCO */}
       {checkoutStep === 'payment' && (
-        <YocoCheckout 
+        <PayFastCheckout 
           amountInCents={total * 100}
           customer={customerDetails}
-          // We pass cart items to save state before redirect
           cartItems={cartItems}
-          onSuccess={() => {}} // Success handled by useEffect above
+          merchantId={payFastSettings.id}
+          merchantKey={payFastSettings.key}
+          isLive={payFastSettings.isLive}
           onCancel={() => setCheckoutStep('details')}
-          publicKey={activeYocoKey} 
         />
       )}
 
@@ -709,7 +732,7 @@ const App: React.FC = () => {
                 <div className="mt-4 flex items-center justify-center gap-2">
                    <ShieldCheck className="w-4 h-4 text-gray-400" />
                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Secured by</span>
-                   <img src={ASSETS.yoco} alt="Yoco" className="h-5" />
+                   <img src="https://www.payfast.co.za/images/branding/payfast-logo.svg" alt="PayFast" className="h-5" />
                 </div>
               </form>
             </div>
@@ -766,6 +789,45 @@ const App: React.FC = () => {
               </div>
             </div>
           </section>
+          
+          {/* NEW: TRUST BAR (HIGH CONVERTING) */}
+          <div className="bg-white border-b border-gray-100 py-6">
+            <div className="container mx-auto px-4">
+                <div className="flex flex-wrap justify-center md:justify-between items-center gap-6 opacity-70 grayscale hover:grayscale-0 transition-all duration-500">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-amber-100 p-2 rounded-full"><Award className="w-6 h-6 text-amber-600" /></div>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-gray-900">100% Handcrafted</span>
+                            <span className="text-xs text-gray-500">Small Batch Quality</span>
+                        </div>
+                    </div>
+                    <div className="h-8 w-px bg-gray-200 hidden md:block"></div>
+                    <div className="flex items-center gap-3">
+                        <div className="bg-blue-100 p-2 rounded-full"><ShieldCheck className="w-6 h-6 text-blue-600" /></div>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-gray-900">Verified Merchant</span>
+                            <span className="text-xs text-gray-500">Secure Checkout</span>
+                        </div>
+                    </div>
+                    <div className="h-8 w-px bg-gray-200 hidden md:block"></div>
+                    <div className="flex items-center gap-3">
+                        <div className="bg-green-100 p-2 rounded-full"><Truck className="w-6 h-6 text-green-600" /></div>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-gray-900">The Courier Guy</span>
+                            <span className="text-xs text-gray-500">Reliable Delivery</span>
+                        </div>
+                    </div>
+                     <div className="h-8 w-px bg-gray-200 hidden md:block"></div>
+                     <div className="flex items-center gap-3">
+                        <div className="bg-yellow-100 p-2 rounded-full"><ThumbsUp className="w-6 h-6 text-yellow-600" /></div>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-bold text-gray-900">5-Star Reviews</span>
+                            <span className="text-xs text-gray-500">Happy Customers</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          </div>
 
           <div className="bg-gradient-to-r from-green-600 to-green-700 text-white py-4 text-center text-base font-black uppercase tracking-widest shadow-lg relative z-20">
             <p className="flex items-center justify-center gap-3 animate-pulse">
@@ -775,20 +837,10 @@ const App: React.FC = () => {
             </p>
           </div>
 
-          <div className="bg-amber-50 py-10 border-b border-amber-100">
-            <div className="container mx-auto px-4 flex flex-wrap justify-center gap-8 md:gap-16 opacity-70 grayscale hover:grayscale-0 transition-all duration-500">
-              {['Brewed for depth — not diluted', 'Fermented Soya Sauce', 'Infused with Umami Flavours'].map((item) => (
-                <div key={item} className="flex items-center gap-2 font-bold text-gray-700">
-                  <Check className="w-5 h-5 text-amber-600" /> {item}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <section id="flavours" className="py-20 bg-white scroll-mt-28">
+          <section id="flavours" className="py-20 bg-gray-50 scroll-mt-28">
             <div className="container mx-auto px-4">
               <div className="max-w-4xl mx-auto mb-16">
-                 <div className="bg-amber-50 border-2 border-amber-100 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 text-center md:text-left relative overflow-hidden">
+                 <div className="bg-amber-50 border-2 border-amber-100 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 text-center md:text-left relative overflow-hidden shadow-sm">
                     <div className="absolute -right-10 -top-10 text-amber-100">
                         <Gift className="w-64 h-64 opacity-20 rotate-12" />
                     </div>
@@ -814,8 +866,8 @@ const App: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {PRODUCTS.filter(p => p.category === 'sauce').map((product) => (
-                  <div key={product.id} className="group relative bg-gray-50 rounded-2xl overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-100 flex flex-col">
-                    <div className="aspect-[4/3] bg-white overflow-hidden relative">
+                  <div key={product.id} className="group relative bg-white rounded-2xl overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-100 flex flex-col">
+                    <div className="aspect-[4/3] bg-gray-50 overflow-hidden relative">
                       <div className="absolute inset-0 bg-gray-100 animate-pulse"></div>
                       <img 
                         src={product.image} 
@@ -1080,7 +1132,7 @@ const App: React.FC = () => {
 
                    <div className="flex flex-col items-center">
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Powered By</p>
-                      <img src={ASSETS.yoco} alt="Yoco" className="h-8" />
+                      <img src="https://www.payfast.co.za/images/branding/payfast-logo.svg" alt="PayFast" className="h-8" />
                    </div>
 
                    <div className="h-10 w-px bg-gray-200 hidden md:block"></div>
