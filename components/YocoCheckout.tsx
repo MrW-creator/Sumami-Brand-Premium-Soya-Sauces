@@ -51,19 +51,19 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
       try {
         const yoco = new window.YocoSDK({ publicKey: cleanKey });
         
-        // 1. HIDE our modal explicitly first
+        // 1. Switch to "Yoco Open" state to show the WHITE BACKDROP
+        // This hides the site content so it doesn't bleed through the popup
         setIsYocoOpen(true);
 
-        // 2. Use a Timeout to allow React to render the "hidden" state (return null) 
-        // BEFORE the Yoco SDK tries to inject the iframe. This prevents the Z-Index war.
+        // 2. Use a Timeout to allow React to render the backdrop 
+        // BEFORE the Yoco SDK tries to inject the iframe.
         setTimeout(() => {
            try {
              yoco.showPopup({
-               amountInCents: Math.round(amountInCents), // Ensure integer
+               amountInCents: Math.ceil(amountInCents), // Ensure integer
                currency: 'ZAR',
                name: 'Sumami Brand',
-               description: 'Order Checkout',
-               // Note: 'displayMethod' is intentionally OMITTED to avoid "API Sunsetted" errors
+               description: 'Order Payment',
                callback: (result: any) => {
                  // When callback fires, Yoco popup is closed/done.
                  setIsYocoOpen(false); 
@@ -75,7 +75,7 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
                        alert("Payment Failed: " + result.error.message);
                     }
                  } else {
-                    // Successful charge
+                    // Successful tokenization
                     onSuccess();
                  }
                }
@@ -84,9 +84,9 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
              console.error("Yoco ShowPopup Error", innerError);
              setProcessing(false);
              setIsYocoOpen(false);
-             alert("Could not open Payment Popup. Please try again.");
+             alert("Could not open Payment Popup. Please check your connection.");
            }
-        }, 250); // 250ms delay for UI to settle
+        }, 500); // 500ms delay for smooth visual transition
 
       } catch (err) {
         console.error("Yoco SDK Init Error", err);
@@ -105,10 +105,30 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
     }
   };
 
-  // If Yoco popup is open, we render nothing (or a transparent overlay) 
-  // to allow the user to interact with the Yoco iframe on the body.
+  // If Yoco popup is active, render a SOLID WHITE backdrop.
+  // This obscures the website content (like the "Smart Saver" banner) so it doesn't bleed through.
   if (isYocoOpen) {
-      return null; 
+      return (
+        <div className="fixed inset-0 z-[60] bg-white flex flex-col items-center justify-center animate-in fade-in duration-500">
+            <div className="flex flex-col items-center gap-6 animate-pulse">
+                 <img src={ASSETS.yoco} alt="Yoco" className="h-12 w-auto" />
+                 <div className="text-center space-y-2">
+                    <div className="flex items-center justify-center gap-2 text-gray-900 font-bold text-lg">
+                        <Loader2 className="w-6 h-6 animate-spin text-amber-600" />
+                        <span>Initializing Secure Payment...</span>
+                    </div>
+                    <p className="text-sm text-gray-500">Please complete the payment in the popup window.</p>
+                 </div>
+            </div>
+            {/* Fallback Cancel Button if Yoco hangs */}
+            <button 
+                onClick={() => { setIsYocoOpen(false); setProcessing(false); }}
+                className="mt-12 text-gray-400 hover:text-red-500 text-xs underline"
+            >
+                Cancel / Popup Didn't Load?
+            </button>
+        </div>
+      ); 
   }
 
   return (
