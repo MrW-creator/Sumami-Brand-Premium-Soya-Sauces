@@ -51,34 +51,45 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
       try {
         const yoco = new window.YocoSDK({ publicKey: cleanKey });
         
-        // HIDE our modal so Yoco's popup is fully visible and not blocked by our Z-index
+        // 1. HIDE our modal explicitly first
         setIsYocoOpen(true);
 
-        yoco.showPopup({
-          amountInCents: amountInCents,
-          currency: 'ZAR',
-          name: 'Sumami Brand',
-          description: `Order for ${customer.firstName}`,
-          // REMOVED deprecated displayMethod: 'MANUAL'
-          callback: (result: any) => {
-            // When callback fires, Yoco popup is closed/done.
-            // We bring back our modal state logic (or navigate away on success).
-            setIsYocoOpen(false); 
-            
-            if (result.error) {
-               setProcessing(false);
-               // Only alert if it's a real error, not just a cancellation
-               if (result.error.message !== "Popup closed") {
-                  alert("Payment Failed: " + result.error.message);
+        // 2. Use a Timeout to allow React to render the "hidden" state (return null) 
+        // BEFORE the Yoco SDK tries to inject the iframe. This prevents the Z-Index war.
+        setTimeout(() => {
+           try {
+             yoco.showPopup({
+               amountInCents: Math.round(amountInCents), // Ensure integer
+               currency: 'ZAR',
+               name: 'Sumami Brand',
+               description: 'Order Checkout',
+               // Note: 'displayMethod' is intentionally OMITTED to avoid "API Sunsetted" errors
+               callback: (result: any) => {
+                 // When callback fires, Yoco popup is closed/done.
+                 setIsYocoOpen(false); 
+                 
+                 if (result.error) {
+                    setProcessing(false);
+                    // Only alert if it's a real error, not just a cancellation
+                    if (result.error.message !== "Popup closed") {
+                       alert("Payment Failed: " + result.error.message);
+                    }
+                 } else {
+                    // Successful charge
+                    onSuccess();
+                 }
                }
-            } else {
-               // Successful charge
-               onSuccess();
-            }
-          }
-        });
+             });
+           } catch (innerError) {
+             console.error("Yoco ShowPopup Error", innerError);
+             setProcessing(false);
+             setIsYocoOpen(false);
+             alert("Could not open Payment Popup. Please try again.");
+           }
+        }, 250); // 250ms delay for UI to settle
+
       } catch (err) {
-        console.error("Yoco SDK Error", err);
+        console.error("Yoco SDK Init Error", err);
         setProcessing(false);
         setIsYocoOpen(false);
         alert("Could not initialize Payment Gateway. Please refresh.");

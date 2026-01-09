@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database, CreditCard, AlertCircle } from 'lucide-react';
+import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database, CreditCard, AlertCircle, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { StoreSettings } from '../types';
 
@@ -53,6 +53,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
   });
   const [savingSettings, setSavingSettings] = useState(false);
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
+  
+  // UI State for Keys Visibility
+  const [showTestKey, setShowTestKey] = useState(false);
+  const [showLiveKey, setShowLiveKey] = useState(false);
 
   // Stats
   const [stats, setStats] = useState({
@@ -820,19 +824,43 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                         </button>
                      </div>
 
+                     {/* INFO BOX ABOUT KEYS */}
+                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800 flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                        <div>
+                           <strong>Wait! Why does this look different to WooCommerce?</strong>
+                           <p className="mt-1 mb-2 opacity-90">
+                              WordPress uses "Secret Keys" (sk_) because it runs on a hidden server. 
+                              This app runs in the customer's browser, so you <strong>MUST use Public Keys (pk_)</strong>.
+                           </p>
+                           <p className="text-xs font-bold uppercase tracking-wide opacity-75">
+                              Where to find them: Yoco Portal &gt; Sell Online &gt; Payment Gateway &gt; Keys &gt; "Public Key" section.
+                           </p>
+                        </div>
+                     </div>
+
                      {/* Keys */}
                      <div>
                          <label className="block text-sm font-bold text-gray-700 mb-1">
                             Yoco Public Key (Test Mode)
                             <span className="block text-xs font-normal text-gray-400">Must start with <code className="bg-gray-100 px-1 rounded">pk_test_</code></span>
                          </label>
-                         <input 
-                            type="text" 
-                            className={`w-full border rounded-lg p-3 font-mono text-sm outline-none transition-all ${isSecretKey(settings.yoco_test_key) ? 'border-red-500 bg-red-50 text-red-900' : 'border-gray-300 bg-gray-50 focus:border-amber-500 focus:bg-white'}`}
-                            value={settings.yoco_test_key}
-                            onChange={(e) => setSettings(prev => ({...prev, yoco_test_key: e.target.value}))}
-                            placeholder="pk_test_..."
-                         />
+                         <div className="relative">
+                            <input 
+                                type={showTestKey ? "text" : "password"}
+                                className={`w-full border rounded-lg p-3 pr-12 font-mono text-sm outline-none transition-all ${isSecretKey(settings.yoco_test_key) ? 'border-red-500 bg-red-50 text-red-900' : 'border-gray-300 bg-gray-50 focus:border-amber-500 focus:bg-white'}`}
+                                value={settings.yoco_test_key}
+                                onChange={(e) => setSettings(prev => ({...prev, yoco_test_key: e.target.value}))}
+                                placeholder="pk_test_..."
+                            />
+                            <button 
+                                type="button"
+                                onClick={() => setShowTestKey(!showTestKey)}
+                                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                            >
+                                {showTestKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
+                         </div>
                          {isSecretKey(settings.yoco_test_key) && <p className="text-xs text-red-600 font-bold mt-1 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Warning: Do not use Secret Key (sk_) here!</p>}
                      </div>
                      
@@ -841,13 +869,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                             Yoco Public Key (Live Mode)
                             <span className="block text-xs font-normal text-gray-400">Must start with <code className="bg-gray-100 px-1 rounded">pk_live_</code></span>
                          </label>
-                         <input 
-                            type="text" 
-                            className={`w-full border rounded-lg p-3 font-mono text-sm outline-none transition-all ${isSecretKey(settings.yoco_live_key) ? 'border-red-500 bg-red-50 text-red-900' : 'border-gray-300 bg-gray-50 focus:border-amber-500 focus:bg-white'}`}
-                            value={settings.yoco_live_key}
-                            onChange={(e) => setSettings(prev => ({...prev, yoco_live_key: e.target.value}))}
-                            placeholder="pk_live_..."
-                         />
+                         <div className="relative">
+                            <input 
+                                type={showLiveKey ? "text" : "password"}
+                                className={`w-full border rounded-lg p-3 pr-12 font-mono text-sm outline-none transition-all ${isSecretKey(settings.yoco_live_key) ? 'border-red-500 bg-red-50 text-red-900' : 'border-gray-300 bg-gray-50 focus:border-amber-500 focus:bg-white'}`}
+                                value={settings.yoco_live_key}
+                                onChange={(e) => setSettings(prev => ({...prev, yoco_live_key: e.target.value}))}
+                                placeholder="pk_live_..."
+                            />
+                            <button 
+                                type="button"
+                                onClick={() => setShowLiveKey(!showLiveKey)}
+                                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                            >
+                                {showLiveKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
+                         </div>
                          {isSecretKey(settings.yoco_live_key) && <p className="text-xs text-red-600 font-bold mt-1 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Warning: Do not use Secret Key (sk_) here!</p>}
                      </div>
 
