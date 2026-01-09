@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, Lock, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 import { CustomerDetails, CartItem } from '../types';
-import { ASSETS } from '../constants';
+import { ASSETS, SUPABASE_CONFIG } from '../constants';
 
 interface YocoCheckoutProps {
   amountInCents: number;
@@ -22,7 +22,6 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onCancel, cu
     try {
       setStatus('redirecting');
       
-      // 1. Save pending order state
       const pendingOrder = {
         cartItems,
         customerDetails: customer,
@@ -31,7 +30,6 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onCancel, cu
       };
       localStorage.setItem('sumami_pending_order', JSON.stringify(pendingOrder));
 
-      // 2. Prepare Items
       const lineItems = cartItems.map(item => ({
         name: item.name,
         price: item.price * 100,
@@ -40,10 +38,10 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onCancel, cu
 
       console.log("V2 Checkout: Contacting Supabase Edge Function...");
 
-      // 3. Call Edge Function
-      const response = await fetch(
-        "https://lnzloecnqcxknozokflr.supabase.co/functions/v1/create-yoco-checkout",
-        {
+      const baseUrl = SUPABASE_CONFIG.url.replace(/\/$/, "");
+      const functionUrl = `${baseUrl}/functions/v1/create-yoco-checkout`;
+
+      const response = await fetch(functionUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -51,31 +49,37 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onCancel, cu
             successUrl: `${window.location.origin}/?payment_status=success`,
             cancelUrl: `${window.location.origin}/?payment_status=cancel`
           })
-        }
-      );
+      });
 
       if (!response.ok) {
-         const errData = await response.json().catch(() => ({}));
-         console.error("Supabase Error:", errData);
-         throw new Error(errData.error || "Connection to payment server failed");
+         // Try to parse JSON, if fails, read text
+         let errMsg = "Connection failed";
+         try {
+            const data = await response.json();
+            errMsg = data.error || data.message || "Unknown server error";
+         } catch (e) {
+            errMsg = await response.text(); // Get raw 500 body
+            if (errMsg.includes("Functions")) errMsg = "Function deployment failed. Check Supabase logs.";
+         }
+         console.error("Supabase Backend Error:", errMsg);
+         throw new Error(errMsg);
       }
 
       const { redirectUrl } = await response.json();
       if (!redirectUrl) throw new Error("No redirect URL received from payment provider");
 
       console.log("Redirecting to:", redirectUrl);
-
-      // 4. Redirect
       window.location.href = redirectUrl;
 
     } catch (err: any) {
       console.error("Checkout Error:", err);
-      setError(err.message || "Failed to initialize secure checkout.");
+      let msg = err.message || "Failed to initialize secure checkout.";
+      if (msg.includes("Failed to fetch")) msg = "Could not connect to Payment Server. Please check internet.";
+      setError(msg);
       setStatus('error');
     }
   };
 
-  // Auto-start on mount
   useEffect(() => {
     if (!hasInitialized.current) {
         hasInitialized.current = true;
@@ -86,10 +90,12 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onCancel, cu
   if (error) {
     return (
       <div className="fixed inset-0 z-[60] bg-white flex flex-col items-center justify-center p-4">
-         <div className="bg-red-50 p-6 rounded-xl border border-red-100 max-w-md text-center">
+         <div className="bg-red-50 p-6 rounded-xl border border-red-100 max-w-md text-center shadow-2xl">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-gray-900 mb-2">Connection Error</h3>
-            <p className="text-gray-600 mb-6">{error}</p>
+            <p className="text-gray-600 mb-6 font-mono text-xs bg-white p-2 rounded border border-gray-200 overflow-x-auto">
+                {error}
+            </p>
             <div className="flex gap-3 justify-center">
                 <button onClick={onCancel} className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-bold">
                   Cancel
@@ -107,7 +113,6 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onCancel, cu
     <div className="fixed inset-0 z-[60] bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-300">
         <div className="flex flex-col items-center gap-6 max-w-sm text-center p-6 bg-white rounded-2xl shadow-2xl border border-gray-100">
              <img src={ASSETS.yoco} alt="Yoco" className="h-10 w-auto mb-2" />
-             
              <div className="space-y-2">
                 <div className="flex items-center justify-center gap-3">
                     {status === 'redirecting' && <Loader2 className="w-6 h-6 animate-spin text-amber-600" />}
@@ -119,16 +124,6 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onCancel, cu
                   Transferring you to Yoco's secure gateway.
                 </p>
              </div>
-
-             {/* Manual button if auto-redirect hangs */}
-             <button 
-                onClick={startCheckout}
-                className="mt-2 text-xs font-bold text-amber-600 hover:text-amber-700 underline flex items-center gap-1"
-             >
-                Click here if you aren't redirected automatically
-                <ArrowRight className="w-3 h-3" />
-             </button>
-
              <div className="flex items-center gap-2 text-[10px] text-gray-400 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100 mt-2">
                 <ShieldCheck className="w-3 h-3 text-green-500" />
                 <span>256-Bit SSL Encrypted</span>

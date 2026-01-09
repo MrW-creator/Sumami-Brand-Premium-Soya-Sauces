@@ -14,49 +14,83 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    // Expect items array instead of raw amount
-    const { items, successUrl, cancelUrl } = await req.json();
+    console.log("------------------------------------------------------------------");
+    console.log("🚀 Yoco Checkout Function Triggered");
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
-        throw new Error("Invalid cart items provided.");
+    // 1. Parse Body
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      throw new Error("Invalid JSON body");
     }
 
-    // Calculate Total Amount in Cents server-side for security
-    const amountInCents = items.reduce((sum: number, item: any) => {
-        return sum + (item.price * item.quantity);
-    }, 0);
+    const { items, successUrl, cancelUrl } = body;
+    console.log(`📦 Items: ${items?.length}, SuccessURL: ${successUrl}`);
 
-    // 1. Init Supabase Admin Client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      throw new Error("Invalid cart items provided.");
+    }
 
-    // 2. Get Keys from DB
-    const { data: settings } = await supabaseClient.from('store_settings').select('*').single();
-    if (!settings) throw new Error("Store settings not found.");
+    // 2. Init Supabase (Service Role)
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    // Select Key based on mode
+    if (!supabaseUrl || !supabaseKey) {
+       console.error("❌ Missing Supabase Env Vars");
+       throw new Error("Server Misconfiguration: Missing DB Keys");
+    }
+
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+    // 3. Get Store Settings
+    // Use maybeSingle() to avoid error if table is empty
+    const { data: settings, error: dbError } = await supabaseClient
+        .from('store_settings')
+        .select('*')
+        .maybeSingle();
+
+    if (dbError) {
+        console.error("❌ DB Error:", dbError);
+        throw new Error(`Database Error: ${dbError.message}`);
+    }
+
+    if (!settings) {
+        console.error("❌ Settings Table Empty");
+        // Fallback or Error? Error is safer.
+        throw new Error("Store Settings not found. Please run the SQL setup script.");
+    }
+
     const isLive = settings.is_live_mode;
     const secretKey = isLive ? settings.yoco_live_key : settings.yoco_test_key;
 
-    if (!secretKey || !secretKey.startsWith('sk_')) {
-        throw new Error(`Configuration Error: Please update your Admin Settings with a valid Secret Key (sk_) for ${isLive ? 'Live' : 'Test'} mode.`);
+    console.log(`🔐 Mode: ${isLive ? 'LIVE' : 'TEST'}`);
+    
+    if (!secretKey || !secretKey.trim().startsWith('sk_')) {
+        console.error("❌ Invalid Secret Key format");
+        throw new Error(`Invalid Payment Key. Check Admin Dashboard settings.`);
     }
 
-    // 3. Create Checkout Session with Yoco
-    // API Docs: https://developer.yoco.com/online/checkout-api/creating-a-checkout
-    const response = await fetch('https://payments.yoco.com/api/checkouts', {
+    // 4. Calculate Total
+    const amountInCents = items.reduce((sum: number, item: any) => {
+        return sum + (item.price * item.quantity);
+    }, 0);
+    
+    console.log(`💰 Total Cents: ${amountInCents}`);
+
+    // 5. Call Yoco API
+    const yocoResponse = await fetch('https://payments.yoco.com/api/checkouts', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${secretKey}`
+        'Authorization': `Bearer ${secretKey.trim()}`
       },
       body: JSON.stringify({
-        amount: Math.ceil(amountInCents), // Ensure integer
+        amount: Math.ceil(amountInCents),
         currency: 'ZAR',
         successUrl: successUrl,
         cancelUrl: cancelUrl,
@@ -67,22 +101,25 @@ serve(async (req) => {
       })
     });
 
-    const yocoData = await response.json();
+    const yocoData = await yocoResponse.json();
 
-    if (!response.ok) {
-        throw new Error(yocoData.message || "Failed to create Yoco Checkout session.");
+    if (!yocoResponse.ok) {
+        console.error("❌ Yoco API Error:", yocoData);
+        throw new Error(yocoData.message || "Yoco rejected the checkout creation.");
     }
 
-    // 4. Return the Redirect URL to the frontend
+    console.log("✅ Checkout Created:", yocoData.redirectUrl);
+
     return new Response(JSON.stringify({ redirectUrl: yocoData.redirectUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200
     });
 
   } catch (error: any) {
-    console.error("Yoco Checkout Error:", error);
+    console.error("❌ Critical Function Error:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
+      status: 400, // Return 400 so client can read JSON message
     });
   }
 });
