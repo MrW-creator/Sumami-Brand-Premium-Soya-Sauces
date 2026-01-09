@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database, CreditCard, AlertCircle, EyeOff } from 'lucide-react';
+import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database, CreditCard, AlertCircle, EyeOff, Beaker } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { StoreSettings } from '../types';
 
@@ -667,6 +667,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                             <span>{settings.is_live_mode ? 'LIVE MODE' : 'DEMO MODE'}</span>
                             {settings.is_live_mode ? <ToggleRight className="w-6 h-6 ml-2" /> : <ToggleLeft className="w-6 h-6 ml-2" />}
                         </button>
+                     </div>
+                     
+                     {/* ADDED: TEST PRODUCT SECTION */}
+                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+                         <div>
+                             <h4 className="font-bold text-blue-900 flex items-center gap-2">
+                                <Beaker className="w-4 h-4" /> Live Testing Tool
+                             </h4>
+                             <p className="text-xs text-blue-700 mt-1">
+                                Add a hidden R3.00 product to the cart to test live card payments without buying full-price items.
+                             </p>
+                         </div>
+                         <button 
+                             onClick={onAddTestProduct}
+                             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm whitespace-nowrap"
+                         >
+                             Add Test Item (R3.00)
+                         </button>
                      </div>
 
                      {/* INFO BOX ABOUT SECRET KEYS */}
