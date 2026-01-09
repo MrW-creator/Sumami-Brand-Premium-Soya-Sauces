@@ -487,6 +487,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                             {settings.is_live_mode ? <ToggleRight className="w-6 h-6 ml-2" /> : <ToggleLeft className="w-6 h-6 ml-2" />}
                         </button>
                      </div>
+                     
+                     {/* ADD TEST PRODUCT BUTTON (Only for Live Testing) */}
+                     {settings.is_live_mode && (
+                        <div className="flex items-center justify-between bg-purple-50 p-4 rounded-lg border border-purple-200 mt-2">
+                             <div>
+                                 <h4 className="font-bold text-purple-900">Live Verification</h4>
+                                 <p className="text-xs text-purple-600 mt-1">Safely verify your gateway is working.</p>
+                             </div>
+                             <button onClick={onAddTestProduct} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-sm flex items-center gap-2">
+                                <Zap className="w-4 h-4" />
+                                Add R5.00 Test Item
+                             </button>
+                        </div>
+                     )}
 
                      <div className="pt-4 border-t flex flex-col gap-4">
                          <button onClick={saveSettings} disabled={savingSettings} className="w-full bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
