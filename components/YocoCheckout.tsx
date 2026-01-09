@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
-import { Loader2, CreditCard, Lock, CheckCircle, AlertCircle, ShieldCheck } from 'lucide-react';
-import { CustomerDetails } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { Loader2, Lock, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { CustomerDetails, CartItem } from '../types';
 import { ASSETS } from '../constants';
 
 interface YocoCheckoutProps {
@@ -9,268 +9,131 @@ interface YocoCheckoutProps {
   onSuccess: () => void;
   onCancel: () => void;
   customer: CustomerDetails;
-  publicKey: string; // Dynamic Key Passed from App
+  publicKey: string;
+  cartItems: CartItem[];
 }
 
-const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, onCancel, customer, publicKey }) => {
-  const [processing, setProcessing] = useState(false);
-  const [sdkLoaded, setSdkLoaded] = useState(false);
-  const [isYocoOpen, setIsYocoOpen] = useState(false); // New state to manage visibility
+const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onCancel, customer, cartItems }) => {
+  const [status, setStatus] = useState<'initializing' | 'redirecting' | 'error'>('initializing');
+  const [error, setError] = useState('');
+  const hasInitialized = useRef(false);
 
-  // Clean key to ensure no whitespace issues
-  const cleanKey = publicKey ? publicKey.trim() : '';
+  const startCheckout = async () => {
+    try {
+      setStatus('redirecting');
+      
+      // 1. Save pending order state
+      const pendingOrder = {
+        cartItems,
+        customerDetails: customer,
+        total: amountInCents / 100,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('sumami_pending_order', JSON.stringify(pendingOrder));
 
-  // Determine mode based on Key string content
-  const isLive = cleanKey && cleanKey.startsWith('pk_live');
-  // If we have a key but it's not live, we consider it test mode (even if the prefix is slightly off, we try it)
-  const isTest = cleanKey && !isLive;
-  const isSimulation = !cleanKey;
+      // 2. Prepare Items
+      const lineItems = cartItems.map(item => ({
+        name: item.name,
+        price: item.price * 100,
+        quantity: item.quantity
+      }));
 
-  useEffect(() => {
-    // Check if Yoco SDK is available on window
-    if (window.YocoSDK) {
-      setSdkLoaded(true);
-    } else {
-      // If no SDK in index.html, we just set loaded to true for simulation mode to work, 
-      // but warn in console if they provided a key.
-      if (cleanKey) {
-        console.error("Yoco SDK script missing in index.html");
+      console.log("V2 Checkout: Contacting Supabase Edge Function...");
+
+      // 3. Call Edge Function
+      const response = await fetch(
+        "https://lnzloecnqcxknozokflr.supabase.co/functions/v1/create-yoco-checkout",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: lineItems,
+            successUrl: `${window.location.origin}/?payment_status=success`,
+            cancelUrl: `${window.location.origin}/?payment_status=cancel`
+          })
+        }
+      );
+
+      if (!response.ok) {
+         const errData = await response.json().catch(() => ({}));
+         console.error("Supabase Error:", errData);
+         throw new Error(errData.error || "Connection to payment server failed");
       }
-      setSdkLoaded(true);
-    }
-  }, [cleanKey]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setProcessing(true);
+      const { redirectUrl } = await response.json();
+      if (!redirectUrl) throw new Error("No redirect URL received from payment provider");
 
-    if (cleanKey) {
-      // ------------------------------------------------------------------
-      // REAL PRODUCTION / TEST MODE
-      // ------------------------------------------------------------------
-      try {
-        const yoco = new window.YocoSDK({ publicKey: cleanKey });
-        
-        // 1. Switch to "Yoco Open" state to show the WHITE BACKDROP
-        // This hides the site content so it doesn't bleed through the popup
-        setIsYocoOpen(true);
+      console.log("Redirecting to:", redirectUrl);
 
-        // 2. Use a Timeout to allow React to render the backdrop 
-        // BEFORE the Yoco SDK tries to inject the iframe.
-        setTimeout(() => {
-           try {
-             yoco.showPopup({
-               amountInCents: Math.ceil(amountInCents), // Ensure integer
-               currency: 'ZAR',
-               name: 'Sumami Brand',
-               description: 'Order Payment',
-               callback: (result: any) => {
-                 // When callback fires, Yoco popup is closed/done.
-                 setIsYocoOpen(false); 
-                 
-                 if (result.error) {
-                    setProcessing(false);
-                    // Only alert if it's a real error, not just a cancellation
-                    if (result.error.message !== "Popup closed") {
-                       alert("Payment Failed: " + result.error.message);
-                    }
-                 } else {
-                    // Successful tokenization
-                    onSuccess();
-                 }
-               }
-             });
-           } catch (innerError) {
-             console.error("Yoco ShowPopup Error", innerError);
-             setProcessing(false);
-             setIsYocoOpen(false);
-             alert("Could not open Payment Popup. Please check your connection.");
-           }
-        }, 500); // 500ms delay for smooth visual transition
+      // 4. Redirect
+      window.location.href = redirectUrl;
 
-      } catch (err) {
-        console.error("Yoco SDK Init Error", err);
-        setProcessing(false);
-        setIsYocoOpen(false);
-        alert("Could not initialize Payment Gateway. Please refresh.");
-      }
-    } else {
-      // ------------------------------------------------------------------
-      // SIMULATION MODE (No Key Provided)
-      // ------------------------------------------------------------------
-      setTimeout(() => {
-        setProcessing(false);
-        onSuccess();
-      }, 2000);
+    } catch (err: any) {
+      console.error("Checkout Error:", err);
+      setError(err.message || "Failed to initialize secure checkout.");
+      setStatus('error');
     }
   };
 
-  // If Yoco popup is active, render a SOLID WHITE backdrop.
-  // This obscures the website content (like the "Smart Saver" banner) so it doesn't bleed through.
-  if (isYocoOpen) {
-      return (
-        <div className="fixed inset-0 z-[60] bg-white flex flex-col items-center justify-center animate-in fade-in duration-500">
-            <div className="flex flex-col items-center gap-6 animate-pulse">
-                 <img src={ASSETS.yoco} alt="Yoco" className="h-12 w-auto" />
-                 <div className="text-center space-y-2">
-                    <div className="flex items-center justify-center gap-2 text-gray-900 font-bold text-lg">
-                        <Loader2 className="w-6 h-6 animate-spin text-amber-600" />
-                        <span>Initializing Secure Payment...</span>
-                    </div>
-                    <p className="text-sm text-gray-500">Please complete the payment in the popup window.</p>
-                 </div>
+  // Auto-start on mount
+  useEffect(() => {
+    if (!hasInitialized.current) {
+        hasInitialized.current = true;
+        startCheckout();
+    }
+  }, []);
+
+  if (error) {
+    return (
+      <div className="fixed inset-0 z-[60] bg-white flex flex-col items-center justify-center p-4">
+         <div className="bg-red-50 p-6 rounded-xl border border-red-100 max-w-md text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Connection Error</h3>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <div className="flex gap-3 justify-center">
+                <button onClick={onCancel} className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-bold">
+                  Cancel
+                </button>
+                <button onClick={() => { setError(''); startCheckout(); }} className="px-6 py-3 bg-gray-900 text-white rounded-lg font-bold">
+                  Retry
+                </button>
             </div>
-            {/* Fallback Cancel Button if Yoco hangs */}
-            <button 
-                onClick={() => { setIsYocoOpen(false); setProcessing(false); }}
-                className="mt-12 text-gray-400 hover:text-red-500 text-xs underline"
-            >
-                Cancel / Popup Didn't Load?
-            </button>
-        </div>
-      ); 
+         </div>
+      </div>
+    );
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative transform transition-all scale-100">
-        
-        {/* Header */}
-        <div className={`p-4 flex justify-between items-center text-white ${isLive ? 'bg-green-700' : 'bg-gray-900'}`}>
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5" />
-            <span className="font-bold text-lg tracking-wide">Secure Checkout</span>
-          </div>
-          <button onClick={onCancel} className="text-white/80 hover:text-white text-sm font-medium">
-            Cancel
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6">
-          <div className="flex justify-between items-end mb-6 border-b border-gray-100 pb-4">
-            <div>
-              <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total to Pay</p>
-              <h3 className="text-3xl font-black text-gray-900">R {(amountInCents / 100).toFixed(2)}</h3>
-            </div>
-            <div className="text-right">
-               <div className="flex flex-col items-end gap-1">
-                  <img src={ASSETS.yoco} alt="Yoco" className="h-8" />
-                  <span className="text-[10px] text-gray-400 font-medium">Official Partner</span>
-               </div>
-            </div>
-          </div>
-
-          {!isLive && (
-             <div className="mb-4 bg-amber-50 text-amber-900 text-xs p-3 rounded-lg border border-amber-200 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600" />
-                <div>
-                  <strong>{isSimulation ? 'Simulation Mode' : 'Test Mode Active'}</strong> 
-                  <p className="mt-0.5 opacity-90">No real money will be charged.</p>
+    <div className="fixed inset-0 z-[60] bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-300">
+        <div className="flex flex-col items-center gap-6 max-w-sm text-center p-6 bg-white rounded-2xl shadow-2xl border border-gray-100">
+             <img src={ASSETS.yoco} alt="Yoco" className="h-10 w-auto mb-2" />
+             
+             <div className="space-y-2">
+                <div className="flex items-center justify-center gap-3">
+                    {status === 'redirecting' && <Loader2 className="w-6 h-6 animate-spin text-amber-600" />}
+                    <h2 className="text-xl font-black text-gray-900">
+                        {status === 'initializing' ? 'Connecting...' : 'Connecting to Yoco Gateway...'}
+                    </h2>
                 </div>
+                <p className="text-sm text-gray-500">
+                  Transferring you to Yoco's secure gateway.
+                </p>
              </div>
-          )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            
-            {/* Simulation Fields */}
-            {isSimulation && (
-              <>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Card Number (Simulated)</label>
-                  <div className="relative">
-                    <input 
-                      type="text" 
-                      placeholder="0000 0000 0000 0000" 
-                      className="w-full border border-gray-300 rounded-lg py-2.5 pl-10 pr-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                      required
-                    />
-                    <CreditCard className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  </div>
-                </div>
+             {/* Manual button if auto-redirect hangs */}
+             <button 
+                onClick={startCheckout}
+                className="mt-2 text-xs font-bold text-amber-600 hover:text-amber-700 underline flex items-center gap-1"
+             >
+                Click here if you aren't redirected automatically
+                <ArrowRight className="w-3 h-3" />
+             </button>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Expiry</label>
-                    <input 
-                      type="text" 
-                      placeholder="MM/YY" 
-                      className="w-full border border-gray-300 rounded-lg py-2.5 px-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">CVC</label>
-                    <div className="relative">
-                      <input 
-                        type="text" 
-                        placeholder="123" 
-                        className="w-full border border-gray-300 rounded-lg py-2.5 pl-10 pr-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                        required
-                      />
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Payment Button with Dynamic Color */}
-            <button
-              type="submit"
-              disabled={processing || !sdkLoaded}
-              className={`w-full mt-2 py-4 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 text-lg ${
-                processing 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : isLive 
-                    ? 'bg-green-600 hover:bg-green-700 shadow-green-900/20' 
-                    : 'bg-red-600 hover:bg-red-700 shadow-red-900/20'
-              }`}
-            >
-              {processing ? (
-                <>
-                  <Loader2 className="animate-spin h-5 w-5" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                   <Lock className="w-5 h-5" />
-                   {isLive ? 'Pay Securely Now' : isTest ? 'Pay (Test Mode)' : 'Pay (Simulation)'}
-                </>
-              )}
-            </button>
-            
-            {/* Trust Badges & Encryption Status */}
-            <div className="mt-6 pt-4 border-t border-gray-100 flex flex-col items-center gap-3">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
-                <Lock className="w-3 h-3 text-green-600" />
+             <div className="flex items-center gap-2 text-[10px] text-gray-400 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100 mt-2">
+                <ShieldCheck className="w-3 h-3 text-green-500" />
                 <span>256-Bit SSL Encrypted</span>
-              </div>
-              
-              <div className="flex items-center justify-center gap-4 opacity-90 w-full">
-                 <div className="flex items-center gap-2">
-                    <img src={ASSETS.yoco} alt="Yoco" className="h-6 w-auto" />
-                    <span className="text-[10px] text-gray-500 font-bold leading-tight">Verified<br/>Merchant</span>
-                 </div>
-                 <div className="h-6 w-px bg-gray-200"></div>
-                 <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <div className="text-left">
-                       <p className="text-xs font-bold text-gray-800 leading-none">Safe to Transact</p>
-                       <p className="text-xs text-gray-400 leading-none mt-0.5">Protected by Yoco</p>
-                    </div>
-                 </div>
-              </div>
-              
-              {/* DEBUG INFO */}
-              <p className="text-[10px] text-gray-300 mt-2 text-center">
-                 {isLive ? 'Live Key Active' : 'Test Key Active'} ({cleanKey.substring(0, 8)}...)
-              </p>
-            </div>
-
-          </form>
+             </div>
         </div>
-      </div>
     </div>
   );
 };
