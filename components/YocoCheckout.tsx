@@ -26,6 +26,12 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onCancel, cu
       
       if (!supabase) throw new Error("Supabase client not initialized.");
 
+      // Calculate locally for validation
+      const totalCheck = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      if (totalCheck < 2) {
+          throw new Error("Total amount is too low (Minimum R2.00). Please add more items.");
+      }
+
       const pendingOrder = {
         cartItems,
         customerDetails: customer,
@@ -40,9 +46,8 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onCancel, cu
         quantity: item.quantity
       }));
 
-      console.log("🚀 Contacting Payment Server (v2.3)...");
+      console.log("🚀 Contacting Payment Server (v3.0)...");
 
-      // Use invoke - this handles the Authorization header automatically
       const { data, error: fnError } = await supabase.functions.invoke('create-yoco-checkout', {
         body: {
           items: lineItems,
@@ -55,11 +60,10 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onCancel, cu
         console.error("Function Error:", fnError);
         let msg = fnError.message || "Unknown error";
         
-        // Handle FunctionsFetchError specifically
-        // This error happens when the fetch to the edge function fails (Network or CORS)
         if (typeof fnError === 'object' && fnError !== null && 'name' in fnError && fnError.name === 'FunctionsFetchError') {
-             msg = "Network Error: Unable to reach the Payment Server. Please check your internet connection or try again.";
-        } else if (msg.includes("Failed to fetch") || msg.includes("Load failed")) {
+             msg = "Server Connection Failed. The payment function could not be reached.";
+             console.log("DEBUG: This is a CORS or Network error. Check Edge Function logs.");
+        } else if (msg.includes("Failed to fetch")) {
              msg = "Could not connect to server. Please check your internet connection.";
         }
         
@@ -101,7 +105,7 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onCancel, cu
       <div className="fixed inset-0 z-[60] bg-white flex flex-col items-center justify-center p-4">
          <div className="bg-red-50 p-6 rounded-xl border border-red-100 max-w-md text-center shadow-2xl animate-in zoom-in-95 duration-300">
             <WifiOff className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Connection Failed</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Checkout Error</h3>
             <p className="text-gray-700 font-medium mb-4">{error}</p>
             
             <div className="text-left bg-white p-3 rounded border border-gray-200 mb-6 max-h-32 overflow-y-auto">
@@ -131,7 +135,7 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onCancel, cu
                 <div className="flex items-center justify-center gap-3">
                     {status === 'redirecting' && <Loader2 className="w-6 h-6 animate-spin text-amber-600" />}
                     <h2 className="text-xl font-black text-gray-900">
-                        Secure Checkout v2.3
+                        Secure Checkout v3.0
                     </h2>
                 </div>
                 <p className="text-sm text-gray-500">
