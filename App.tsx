@@ -1124,7 +1124,7 @@ const App: React.FC = () => {
                 </div>
               </div>
               <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-gray-800">
-                 <p className="text-sm">&copy; 2024 Sumami Brand / soyasauce.co.za. All rights reserved.</p>
+                 <p className="text-sm">&copy; 2024 Sumami Brand / soyasauce.co.za. All rights reserved. <span className="opacity-50 text-xs ml-2">v2.1 (Secure Checkout)</span></p>
                  
                  <div className="flex gap-4 mt-4 md:mt-0 items-center">
                     {storeSettings?.instagram_url && (
