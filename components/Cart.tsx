@@ -315,16 +315,9 @@ const Cart: React.FC<CartProps> = ({
               )}
             </button>
             
-            <button
-                onClick={onClose}
-                className="w-full py-3 rounded-xl font-bold text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors text-sm"
-            >
-                Continue Shopping
-            </button>
-
-            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-center gap-2 opacity-60">
+            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-center gap-2">
                 <span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Payments Powered by</span>
-                <img src={ASSETS.yoco} alt="Yoco" className="h-4 grayscale" />
+                <img src={ASSETS.yoco} alt="Yoco" className="h-6" />
             </div>
           </div>
         )}

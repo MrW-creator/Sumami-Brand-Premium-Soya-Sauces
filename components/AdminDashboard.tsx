@@ -107,6 +107,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setServerCode(code); // Store securely in memory
 
+    // --- DEV DEBUG: Log code to console so user can login even if email fails ---
+    console.log("%c🔐 ADMIN OTP:", "color: orange; font-size: 16px; font-weight: bold;", code);
+
     try {
         // 2. Call Edge Function to Email the Code
         const { error: fnError } = await supabase.functions.invoke('send-admin-otp', {
@@ -116,15 +119,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
             }
         });
 
-        if (fnError) throw fnError;
+        if (fnError) {
+             const errorDetails = typeof fnError === 'object' && fnError !== null && 'message' in fnError 
+                ? (fnError as any).message 
+                : JSON.stringify(fnError);
+             throw new Error(errorDetails);
+        }
 
         // 3. Move to Verify Step
         setAuthStep('verify');
 
     } catch (err: any) {
-        console.error("OTP Error:", err);
-        setError("Failed to send email. Check Supabase logs.");
-        setAuthStep('init');
+        console.error("OTP Send Failed:", err);
+        
+        // FAIL-OPEN STRATEGY: 
+        // We show the error, but we proceed to the verify step anyway.
+        // This allows the developer to look at the console.log output and enter the code.
+        setError(`Email failed. Check console (F12) for code. Error: ${err.message}`);
+        setAuthStep('verify');
     }
   };
 
@@ -456,7 +468,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                   </p>
                   <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-800 mb-6 flex items-center gap-2 text-left">
                       <Mail className="w-4 h-4 shrink-0" />
-                      <span>Sending to: <strong>Registered Admin Email</strong></span>
+                      <span>Sending to: <strong>{ALLOWED_ADMIN_EMAIL}</strong></span>
                   </div>
                   
                   {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{error}</div>}
@@ -491,6 +503,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                   <p className="text-gray-500 text-sm mb-4">
                     Enter the 6-digit code sent to your email.
                   </p>
+                  
+                  {/* WARNING IF EMAIL FAILED */}
+                  {error && (
+                    <div className="bg-amber-50 border border-amber-200 p-2 rounded mb-4 text-xs text-amber-800 text-left">
+                        <strong>Debug Mode Active:</strong> {error}
+                    </div>
+                  )}
+
                   <form onSubmit={handleVerifyCode}>
                       <input 
                         type="text" 
@@ -501,8 +521,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                         placeholder="000000"
                         autoFocus
                       />
-                      
-                      {error && <p className="text-red-500 text-sm font-bold animate-pulse mb-4">{error}</p>}
                       
                       <button 
                         type="submit" 

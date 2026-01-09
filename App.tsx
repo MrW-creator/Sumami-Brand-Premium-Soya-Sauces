@@ -703,7 +703,7 @@ const App: React.FC = () => {
                 <div className="mt-4 flex items-center justify-center gap-2">
                    <ShieldCheck className="w-4 h-4 text-gray-400" />
                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Secured by</span>
-                   <img src={ASSETS.yoco} alt="Yoco" className="h-5 transition-all" />
+                   <img src={ASSETS.yoco} alt="Yoco" className="h-5" />
                 </div>
               </form>
             </div>
@@ -1090,7 +1090,7 @@ const App: React.FC = () => {
 
                    <div className="flex flex-col items-center">
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Powered By</p>
-                      <img src={ASSETS.yoco} alt="Yoco" className="h-8 transition-all" />
+                      <img src={ASSETS.yoco} alt="Yoco" className="h-8" />
                    </div>
 
                    <div className="h-10 w-px bg-gray-200 hidden md:block"></div>
@@ -1131,6 +1131,7 @@ const App: React.FC = () => {
                     <li><button onClick={() => setActivePolicy('privacy')} className="hover:text-white transition-colors">Privacy Policy</button></li>
                     <li><button onClick={() => setActivePolicy('terms')} className="hover:text-white transition-colors">Terms of Service</button></li>
                     <li><button onClick={() => setActivePolicy('shipping')} className="hover:text-white transition-colors">Shipping Policy</button></li>
+                    <li><button onClick={() => setActivePolicy('returns')} className="hover:text-white transition-colors">Returns Policy</button></li>
                   </ul>
                 </div>
               </div>
@@ -1174,12 +1175,6 @@ const App: React.FC = () => {
                  </div>
 
                  <div className="mt-4 md:mt-0 md:ml-4 flex items-center gap-3">
-                    {storeSettings && (
-                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100 border border-gray-200" title={storeSettings.is_live_mode ? "Live Mode Active" : "Demo Mode Active"}>
-                            <div className={`w-2 h-2 rounded-full ${storeSettings.is_live_mode ? 'bg-green-500 animate-pulse' : 'bg-yellow-400'}`}></div>
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{storeSettings.is_live_mode ? 'LIVE' : 'DEMO'}</span>
-                        </div>
-                    )}
                     <button onClick={() => setIsAdminOpen(true)} className="text-xs text-gray-800 hover:text-gray-600 font-bold uppercase tracking-wide">
                         Admin Access
                     </button>

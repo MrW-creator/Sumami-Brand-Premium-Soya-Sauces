@@ -1,7 +1,8 @@
-import React from 'react';
-import { X, Shield, Truck, FileText } from 'lucide-react';
 
-export type PolicyType = 'privacy' | 'terms' | 'shipping' | null;
+import React from 'react';
+import { X, Shield, Truck, FileText, RotateCcw } from 'lucide-react';
+
+export type PolicyType = 'privacy' | 'terms' | 'shipping' | 'returns' | null;
 
 interface LegalModalProps {
   isOpen: boolean;
@@ -52,6 +53,19 @@ const LegalModal: React.FC<LegalModalProps> = ({ isOpen, type, onClose }) => {
               <p><strong>4. Couriers</strong><br/>We use reliable local courier partners (The Courier Guy, Dawn Wing, etc.) to ensure your sauces arrive safely.</p>
             </div>
           )
+        };
+      case 'returns':
+        return {
+            title: 'Returns & Refunds',
+            icon: <RotateCcw className="w-6 h-6 text-amber-600" />,
+            content: (
+                <div className="space-y-4 text-gray-600 text-sm">
+                    <p><strong>1. Our Happiness Guarantee</strong><br/>We want you to love your Sumami experience. If you are not completely satisfied, please contact our support team so we can make it right.</p>
+                    <p><strong>2. Damaged or Broken Items</strong><br/>If your order arrives damaged, leaking, or broken, please take a photo and WhatsApp or email us within 24 hours of delivery. We will dispatch a free replacement immediately—no questions asked.</p>
+                    <p><strong>3. Returns on Unopened Items</strong><br/>You may return unopened, sealed bottles within 7 days of delivery for a full refund. Please note that return shipping costs will be for your account.</p>
+                    <p><strong>4. Perishable Goods</strong><br/>For health and safety reasons, we cannot accept returns on opened bottles unless there is a specific quality defect.</p>
+                </div>
+            )
         };
       default:
         return { title: '', icon: null, content: null };

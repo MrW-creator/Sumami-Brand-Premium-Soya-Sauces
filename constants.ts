@@ -59,9 +59,9 @@ export const ASSETS = {
 
   seal: 'https://cdn-icons-png.flaticon.com/512/3502/3502601.png',
   
-  // Updated Yoco Logo
+  // Updated Yoco Logo (lowercase 'yoco.webp')
   yoco: USE_SUPABASE_IMAGES 
-    ? `${SUPABASE_STORAGE_URL}/Yoco.webp` 
+    ? `${SUPABASE_STORAGE_URL}/yoco.webp` 
     : 'https://upload.wikimedia.org/wikipedia/commons/1/16/Yoco_Logo.svg'
 };
 

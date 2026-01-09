@@ -105,7 +105,7 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
             </div>
             <div className="text-right">
                <div className="flex flex-col items-end gap-1">
-                  <img src={ASSETS.yoco} alt="Yoco" className="h-6" />
+                  <img src={ASSETS.yoco} alt="Yoco" className="h-8" />
                   <span className="text-[10px] text-gray-400 font-medium">Official Partner</span>
                </div>
             </div>
@@ -199,9 +199,7 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
               
               <div className="flex items-center justify-center gap-4 opacity-90 w-full">
                  <div className="flex items-center gap-2">
-                    <div className="bg-blue-600/10 p-1.5 rounded-full">
-                       <img src={ASSETS.yoco} alt="Yoco" className="w-4 h-4 grayscale opacity-50" />
-                    </div>
+                    <img src={ASSETS.yoco} alt="Yoco" className="h-6 w-auto" />
                     <span className="text-[10px] text-gray-500 font-bold leading-tight">Verified<br/>Merchant</span>
                  </div>
                  <div className="h-6 w-px bg-gray-200"></div>
