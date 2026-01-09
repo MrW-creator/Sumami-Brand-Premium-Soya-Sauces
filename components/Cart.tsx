@@ -317,7 +317,7 @@ const Cart: React.FC<CartProps> = ({
             
             <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-center gap-2">
                 <span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Payments Powered by</span>
-                <img src={ASSETS.yoco} alt="Yoco" className="h-6" />
+                <img src={ASSETS.payfast} alt="PayFast" className="h-6" />
             </div>
           </div>
         )}

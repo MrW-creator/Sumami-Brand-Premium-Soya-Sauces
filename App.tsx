@@ -13,6 +13,7 @@ import BonusSelector from './components/BonusSelector';
 import UpsellSelector from './components/UpsellSelector';
 import CookieConsent from './components/CookieConsent';
 import WhatsAppButton from './components/WhatsAppButton';
+import AnalyticsTracker from './components/AnalyticsTracker';
 
 // Shipping is now all inclusive (FREE)
 const SHIPPING_COST = 0;
@@ -117,10 +118,22 @@ const App: React.FC = () => {
         setCustomerDetails(savedDetails);
         setLastOrder({ items: savedItems, total: total });
         
-        // We assume success if they hit this URL, update the order in DB if needed (advanced)
-        // For MVP, we trust the redirect flow. The initial saveOrder happened BEFORE redirect with status 'pending'
-        // Ideally we would update status to 'paid' here, but without an Order ID reference in URL it's tricky without auth.
-        // For now, we show success.
+        // Trigger Analytics Purchase Event
+        if ((window as any).fbq) {
+           (window as any).fbq('track', 'Purchase', { value: total, currency: 'ZAR' });
+        }
+        if ((window as any).gtag) {
+           (window as any).gtag('event', 'purchase', {
+              currency: 'ZAR',
+              value: total,
+              items: savedItems.map((i: any) => ({
+                 item_id: i.sku,
+                 item_name: i.name,
+                 price: i.price,
+                 quantity: i.quantity
+              }))
+           });
+        }
         
         // Clear storage & show success
         localStorage.removeItem('sumami_pending_order');
@@ -487,6 +500,7 @@ const App: React.FC = () => {
      // ... [Success UI is preserved] ...
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <AnalyticsTracker settings={storeSettings} />
         {/* Success View */}
         <div className="w-full max-w-lg">
           <div className="bg-white p-8 rounded-3xl shadow-2xl text-center mb-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -559,6 +573,7 @@ const App: React.FC = () => {
   // --- MAIN RENDER ---
   return (
     <div className="font-sans text-gray-900 antialiased selection:bg-amber-200">
+      <AnalyticsTracker settings={storeSettings} />
       
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-30 bg-white/90 backdrop-blur-md border-b border-gray-100 transition-all">

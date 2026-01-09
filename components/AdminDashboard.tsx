@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database, CreditCard, AlertCircle, EyeOff, Beaker, Server } from 'lucide-react';
+import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database, CreditCard, AlertCircle, EyeOff, Beaker, Server, Activity } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
-import { PAYFAST_DEFAULTS } from '../constants';
+import { PAYFAST_DEFAULTS, ADMIN_EMAIL } from '../constants';
 import { StoreSettings } from '../types';
 
 interface AdminDashboardProps {
@@ -10,9 +10,6 @@ interface AdminDashboardProps {
   onSettingsUpdated?: () => void;
   onAddTestProduct: () => void;
 }
-
-// Allowed Admin Email - Hardcoded for security
-const ALLOWED_ADMIN_EMAIL = 'waldeckwayne@gmail.com';
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpdated, onAddTestProduct }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -50,7 +47,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
     instagram_url: '',
     pinterest_url: '',
     youtube_url: '',
-    tiktok_url: ''
+    tiktok_url: '',
+    meta_pixel_id: '',
+    google_analytics_id: ''
   });
   const [savingSettings, setSavingSettings] = useState(false);
   
@@ -114,7 +113,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
     try {
         const { error: fnError } = await supabase.functions.invoke('send-admin-otp', {
             body: {
-                email: ALLOWED_ADMIN_EMAIL,
+                email: ADMIN_EMAIL,
                 code: code
             }
         });
@@ -203,7 +202,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
             instagram_url: data.instagram_url || '',
             pinterest_url: data.pinterest_url || '',
             youtube_url: data.youtube_url || '',
-            tiktok_url: data.tiktok_url || ''
+            tiktok_url: data.tiktok_url || '',
+            meta_pixel_id: data.meta_pixel_id || '',
+            google_analytics_id: data.google_analytics_id || ''
         });
       }
     } catch (err) {
@@ -224,7 +225,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
             instagram_url: settings.instagram_url?.trim(),
             pinterest_url: settings.pinterest_url?.trim(),
             youtube_url: settings.youtube_url?.trim(),
-            tiktok_url: settings.tiktok_url?.trim()
+            tiktok_url: settings.tiktok_url?.trim(),
+            meta_pixel_id: settings.meta_pixel_id?.trim(),
+            google_analytics_id: settings.google_analytics_id?.trim()
         });
 
         if (error) throw error;
@@ -336,7 +339,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
               <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                   <p className="text-gray-500 text-sm mb-6">For enhanced security, we will send a <strong>6-digit verification code</strong> to your registered email.</p>
                   <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-800 mb-6 flex items-center gap-2 text-left">
-                      <Mail className="w-4 h-4 shrink-0" /><span>Sending to: <strong>{ALLOWED_ADMIN_EMAIL}</strong></span>
+                      <Mail className="w-4 h-4 shrink-0" /><span>Sending to: <strong>{ADMIN_EMAIL}</strong></span>
                   </div>
                   {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{error}</div>}
                   <div className="flex gap-2">
@@ -431,37 +434,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-2xl mx-auto">
                  <div className="flex items-center gap-4 mb-6 border-b pb-4">
                      <div className="bg-gray-100 p-3 rounded-full"><Key className="w-8 h-8 text-gray-700" /></div>
-                     <div><h2 className="text-2xl font-black text-gray-900">Store Configuration</h2><p className="text-gray-500">Manage PayFast Integration (No Backend Required).</p></div>
+                     <div><h2 className="text-2xl font-black text-gray-900">Store Configuration</h2><p className="text-gray-500">Manage Payments & Analytics.</p></div>
                  </div>
 
                  <div className="space-y-6">
                      
-                     <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200">
-                         <div>
-                             <h4 className="font-bold text-gray-900">Payment Gateway Mode</h4>
-                             <p className="text-xs text-gray-500 mt-1">{settings.is_live_mode ? "Live Transactions (Real Money)" : "Sandbox Mode (Testing)"}</p>
-                         </div>
-                         <button onClick={() => setSettings(prev => ({...prev, is_live_mode: !prev.is_live_mode}))} className={`flex items-center gap-3 px-5 py-3 rounded-xl font-bold transition-all shadow-sm border-2 ${settings.is_live_mode ? 'bg-green-50 border-green-500 text-green-700 hover:bg-green-100' : 'bg-yellow-50 border-yellow-400 text-yellow-700 hover:bg-yellow-100'}`}>
-                            <span className={`relative flex h-3 w-3`}>
-                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${settings.is_live_mode ? 'bg-green-500' : 'bg-yellow-400'}`}></span>
-                                <span className={`relative inline-flex rounded-full h-3 w-3 ${settings.is_live_mode ? 'bg-green-600' : 'bg-yellow-400'}`}></span>
-                            </span>
-                            <span>{settings.is_live_mode ? 'LIVE MODE' : 'DEMO MODE'}</span>
-                            {settings.is_live_mode ? <ToggleRight className="w-6 h-6 ml-2" /> : <ToggleLeft className="w-6 h-6 ml-2" />}
-                        </button>
-                     </div>
-                     
-                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
-                         <div>
-                             <h4 className="font-bold text-blue-900 flex items-center gap-2"><Beaker className="w-4 h-4" /> Live Testing Tool</h4>
-                             <p className="text-xs text-blue-700 mt-1">Add a hidden R3.00 product to cart to test live payments.</p>
-                         </div>
-                         <button onClick={onAddTestProduct} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm whitespace-nowrap">Add Test Item (R3.00)</button>
-                     </div>
-
                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-900 flex items-start gap-3">
                         <Lock className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-600" />
-                        <div><strong>PayFast Configuration</strong><p className="mt-1 mb-2 opacity-90">Enter your Merchant ID and Key. These are found in your PayFast dashboard.</p></div>
+                        <div><strong>PayFast Configuration</strong><p className="mt-1 mb-2 opacity-90">Enter your Merchant ID and Key.</p></div>
                      </div>
 
                      <div>
@@ -477,6 +457,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                          </div>
                      </div>
 
+                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900 flex items-start gap-3 mt-8">
+                        <Activity className="w-5 h-5 flex-shrink-0 mt-0.5 text-blue-600" />
+                        <div><strong>Analytics & Tracking</strong><p className="mt-1 mb-2 opacity-90">Paste your IDs here. We handle the code injection automatically.</p></div>
+                     </div>
+
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                             <label className="block text-sm font-bold text-gray-700 mb-1">Meta Pixel ID (Facebook)</label>
+                             <input type="text" className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 focus:border-blue-500 focus:bg-white outline-none" value={settings.meta_pixel_id || ''} onChange={(e) => setSettings(prev => ({...prev, meta_pixel_id: e.target.value}))} placeholder="e.g. 1234567890" />
+                        </div>
+                        <div>
+                             <label className="block text-sm font-bold text-gray-700 mb-1">Google Analytics ID (G-XXXX)</label>
+                             <input type="text" className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 focus:border-blue-500 focus:bg-white outline-none" value={settings.google_analytics_id || ''} onChange={(e) => setSettings(prev => ({...prev, google_analytics_id: e.target.value}))} placeholder="e.g. G-A1B2C3D4" />
+                        </div>
+                     </div>
+
+                     <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200 mt-4">
+                         <div>
+                             <h4 className="font-bold text-gray-900">Payment Gateway Mode</h4>
+                             <p className="text-xs text-gray-500 mt-1">{settings.is_live_mode ? "Live Transactions (Real Money)" : "Sandbox Mode (Testing)"}</p>
+                         </div>
+                         <button onClick={() => setSettings(prev => ({...prev, is_live_mode: !prev.is_live_mode}))} className={`flex items-center gap-3 px-5 py-3 rounded-xl font-bold transition-all shadow-sm border-2 ${settings.is_live_mode ? 'bg-green-50 border-green-500 text-green-700 hover:bg-green-100' : 'bg-yellow-50 border-yellow-400 text-yellow-700 hover:bg-yellow-100'}`}>
+                            <span className={`relative flex h-3 w-3`}>
+                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${settings.is_live_mode ? 'bg-green-500' : 'bg-yellow-400'}`}></span>
+                                <span className={`relative inline-flex rounded-full h-3 w-3 ${settings.is_live_mode ? 'bg-green-600' : 'bg-yellow-400'}`}></span>
+                            </span>
+                            <span>{settings.is_live_mode ? 'LIVE MODE' : 'DEMO MODE'}</span>
+                            {settings.is_live_mode ? <ToggleRight className="w-6 h-6 ml-2" /> : <ToggleLeft className="w-6 h-6 ml-2" />}
+                        </button>
+                     </div>
+
                      <div className="pt-4 border-t flex flex-col gap-4">
                          <button onClick={saveSettings} disabled={savingSettings} className="w-full bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                              {savingSettings ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
@@ -486,7 +497,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                  </div>
             </div>
         )}
-
+        {/* Orders Table rendering preserved... */}
         {(viewTab !== 'settings' && viewTab !== 'analytics') && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-[400px]">
                <div className="overflow-x-auto">

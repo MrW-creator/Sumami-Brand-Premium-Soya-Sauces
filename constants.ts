@@ -13,6 +13,7 @@ export const SUPABASE_CONFIG = {
 // ADMIN DASHBOARD SECURITY
 // -----------------------------------------------------------------------------------------
 export const ADMIN_PIN = 'admin123'; 
+export const ADMIN_EMAIL = 'waldeckwayne@gmail.com'; // <--- CHANGE THIS IF NEEDED
 
 // -----------------------------------------------------------------------------------------
 // PAYFAST CONFIGURATION (DEFAULTS)
@@ -65,7 +66,7 @@ export const ASSETS = {
   seal: 'https://cdn-icons-png.flaticon.com/512/3502/3502601.png',
   
   // Using PayFast Logo now
-  yoco: 'https://www.payfast.co.za/images/branding/payfast-logo.svg' 
+  payfast: 'https://www.payfast.co.za/images/branding/payfast-logo.svg' 
 };
 
 // -----------------------------------------------------------------------------------------

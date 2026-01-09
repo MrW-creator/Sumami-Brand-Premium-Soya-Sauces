@@ -42,11 +42,16 @@ export interface StoreSettings {
   pinterest_url?: string;
   youtube_url?: string;
   tiktok_url?: string;
+
+  // ANALYTICS
+  meta_pixel_id?: string;
+  google_analytics_id?: string;
 }
 
 // Window interface (Cleaned up)
 declare global {
   interface Window {
-    // No SDKs needed for PayFast redirect
+    fbq?: any; // Facebook Pixel
+    gtag?: any; // Google Analytics
   }
 }
