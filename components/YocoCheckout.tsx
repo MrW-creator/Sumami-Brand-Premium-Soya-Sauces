@@ -15,6 +15,7 @@ interface YocoCheckoutProps {
 const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, onCancel, customer, publicKey }) => {
   const [processing, setProcessing] = useState(false);
   const [sdkLoaded, setSdkLoaded] = useState(false);
+  const [isYocoOpen, setIsYocoOpen] = useState(false); // New state to manage visibility
 
   // Clean key to ensure no whitespace issues
   const cleanKey = publicKey ? publicKey.trim() : '';
@@ -49,6 +50,10 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
       // ------------------------------------------------------------------
       try {
         const yoco = new window.YocoSDK({ publicKey: cleanKey });
+        
+        // HIDE our modal so Yoco's popup is fully visible and not blocked by our Z-index
+        setIsYocoOpen(true);
+
         yoco.showPopup({
           amountInCents: amountInCents,
           currency: 'ZAR',
@@ -56,9 +61,16 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
           description: `Order for ${customer.firstName}`,
           displayMethod: 'MANUAL',
           callback: (result: any) => {
+            // When callback fires, Yoco popup is closed/done.
+            // We bring back our modal state logic (or navigate away on success).
+            setIsYocoOpen(false); 
+            
             if (result.error) {
                setProcessing(false);
-               alert("Payment Failed: " + result.error.message);
+               // Only alert if it's a real error, not just a cancellation
+               if (result.error.message !== "Popup closed") {
+                  alert("Payment Failed: " + result.error.message);
+               }
             } else {
                // Successful charge
                onSuccess();
@@ -68,6 +80,7 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
       } catch (err) {
         console.error("Yoco SDK Error", err);
         setProcessing(false);
+        setIsYocoOpen(false);
         alert("Could not initialize Payment Gateway. Please refresh.");
       }
     } else {
@@ -80,6 +93,12 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
       }, 2000);
     }
   };
+
+  // If Yoco popup is open, we render nothing (or a transparent overlay) 
+  // to allow the user to interact with the Yoco iframe on the body.
+  if (isYocoOpen) {
+      return null; 
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
@@ -207,7 +226,7 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
                     <CheckCircle className="w-5 h-5 text-green-600" />
                     <div className="text-left">
                        <p className="text-xs font-bold text-gray-800 leading-none">Safe to Transact</p>
-                       <p className="text-[10px] text-gray-400 leading-none mt-0.5">Protected by Yoco</p>
+                       <p className="text-xs text-gray-400 leading-none mt-0.5">Protected by Yoco</p>
                     </div>
                  </div>
               </div>
