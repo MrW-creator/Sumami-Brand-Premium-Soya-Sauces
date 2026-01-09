@@ -59,7 +59,7 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onSuccess, o
           currency: 'ZAR',
           name: 'Sumami Brand',
           description: `Order for ${customer.firstName}`,
-          displayMethod: 'MANUAL',
+          // REMOVED deprecated displayMethod: 'MANUAL'
           callback: (result: any) => {
             // When callback fires, Yoco popup is closed/done.
             // We bring back our modal state logic (or navigate away on success).
