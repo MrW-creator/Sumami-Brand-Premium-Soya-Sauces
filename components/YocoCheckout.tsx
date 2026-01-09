@@ -40,7 +40,7 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onCancel, cu
         quantity: item.quantity
       }));
 
-      console.log("🚀 Contacting Payment Server (v2.2)...");
+      console.log("🚀 Contacting Payment Server (v2.3)...");
 
       // Use invoke - this handles the Authorization header automatically
       const { data, error: fnError } = await supabase.functions.invoke('create-yoco-checkout', {
@@ -55,7 +55,11 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onCancel, cu
         console.error("Function Error:", fnError);
         let msg = fnError.message || "Unknown error";
         
-        if (msg.includes("Failed to fetch") || msg.includes("Load failed")) {
+        // Handle FunctionsFetchError specifically
+        // This error happens when the fetch to the edge function fails (Network or CORS)
+        if (typeof fnError === 'object' && fnError !== null && 'name' in fnError && fnError.name === 'FunctionsFetchError') {
+             msg = "Network Error: Unable to reach the Payment Server. Please check your internet connection or try again.";
+        } else if (msg.includes("Failed to fetch") || msg.includes("Load failed")) {
              msg = "Could not connect to server. Please check your internet connection.";
         }
         
@@ -127,7 +131,7 @@ const YocoCheckout: React.FC<YocoCheckoutProps> = ({ amountInCents, onCancel, cu
                 <div className="flex items-center justify-center gap-3">
                     {status === 'redirecting' && <Loader2 className="w-6 h-6 animate-spin text-amber-600" />}
                     <h2 className="text-xl font-black text-gray-900">
-                        Secure Checkout v2.2
+                        Secure Checkout v2.3
                     </h2>
                 </div>
                 <p className="text-sm text-gray-500">
