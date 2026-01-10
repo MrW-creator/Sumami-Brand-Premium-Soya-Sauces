@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database, CreditCard, AlertCircle, EyeOff, Beaker, Server, Activity, FileText, Briefcase, Tag, Package, Calculator } from 'lucide-react';
+import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database, CreditCard, AlertCircle, EyeOff, Beaker, Server, Activity, FileText, Briefcase, Tag, Package, Calculator, Timer } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { PAYFAST_DEFAULTS, ADMIN_EMAIL } from '../constants';
 import { StoreSettings } from '../types';
@@ -19,6 +19,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
   const [serverCode, setServerCode] = useState<string | null>(null);
   const [inputCode, setInputCode] = useState('');
   const [error, setError] = useState('');
+  const [timeLeft, setTimeLeft] = useState(30); // 30 Second Timer
   
   // Dashboard Data State
   const [orders, setOrders] = useState<any[]>([]);
@@ -83,6 +84,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
     }
   }, []);
 
+  // --- TIMER LOGIC ---
+  useEffect(() => {
+    let timer: any;
+    if (authStep === 'verify' && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0 && authStep === 'verify') {
+      // Time Expired
+      setServerCode(null); // Clear the code for security
+      setAuthStep('init');
+      setError('Session expired. Code invalid.');
+    }
+    return () => clearInterval(timer);
+  }, [authStep, timeLeft]);
+
   // Reset tracking inputs when modal opens
   useEffect(() => {
     if (selectedOrder) {
@@ -122,10 +139,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
 
     setAuthStep('sending');
     setError('');
+    setTimeLeft(30); // Reset Timer
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setServerCode(code); 
 
+    // console.log to keep dev ability to debug without email, but users won't see this easily
     console.log("%c🔐 ADMIN OTP:", "color: orange; font-size: 16px; font-weight: bold;", code);
 
     try {
@@ -146,20 +165,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
 
     } catch (err: any) {
         console.error("OTP Send Failed:", err);
-        setError(`Email failed. Check console (F12) for code. Error: ${err.message}`);
+        setError(`Email failed. Check console. Error: ${err.message}`);
         setAuthStep('verify');
     }
   };
 
   const handleVerifyCode = (e: React.FormEvent) => {
       e.preventDefault();
+      if (!serverCode) {
+          setError("Session expired.");
+          return;
+      }
       if (inputCode === serverCode) {
           setIsAuthenticated(true);
           sessionStorage.setItem('sumami_admin_auth', 'true');
           fetchOrders();
           fetchSettings();
       } else {
-          setError("Invalid code. Please try again.");
+          setError("Invalid code.");
           setInputCode('');
       }
   };
@@ -391,7 +414,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
       return { mobile, desktop };
   };
 
-  // --- LOGIN SCREEN ---
+  // --- LOGIN SCREEN (SECURE) ---
   if (!isAuthenticated) {
     return (
       <div className="fixed inset-0 z-[100] bg-gray-900 flex items-center justify-center p-4">
@@ -400,34 +423,38 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
             <ShieldCheck className="w-10 h-10 text-amber-600" />
           </div>
           <h2 className="text-2xl font-black mb-2 text-gray-900 relative z-10">Admin Access</h2>
+          
           {authStep === 'init' && (
-              <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                  <p className="text-gray-500 text-sm mb-6">For enhanced security, we will send a <strong>6-digit verification code</strong> to your registered email.</p>
-                  <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-800 mb-6 flex items-center gap-2 text-left">
-                      <Mail className="w-4 h-4 shrink-0" /><span>Sending to: <strong>{ADMIN_EMAIL}</strong></span>
-                  </div>
-                  {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{error}</div>}
+              <div className="animate-in fade-in slide-in-from-right-4 duration-300 pt-4">
+                  {/* HIDDEN EMAIL AND INSTRUCTIONS FOR SECURITY */}
+                  {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4 font-medium">{error}</div>}
                   <div className="flex gap-2">
                     <button type="button" onClick={onClose} className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-xl">Cancel</button>
-                    <button onClick={handleSendCode} className="flex-1 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-black shadow-lg flex items-center justify-center gap-2">Send Code <ArrowRight className="w-4 h-4" /></button>
+                    <button onClick={handleSendCode} className="flex-1 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-black shadow-lg flex items-center justify-center gap-2">Authenticate <ArrowRight className="w-4 h-4" /></button>
                   </div>
               </div>
           )}
           {authStep === 'sending' && (
               <div className="py-8 animate-in zoom-in duration-300">
                   <RefreshCw className="w-12 h-12 text-amber-600 animate-spin mx-auto mb-4" />
-                  <p className="font-bold text-gray-700">Sending Secure Code...</p>
+                  <p className="font-bold text-gray-700">Verifying...</p>
               </div>
           )}
           {authStep === 'verify' && (
               <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-                  <p className="text-gray-500 text-sm mb-4">Enter the 6-digit code sent to your email.</p>
-                  {error && <div className="bg-amber-50 border border-amber-200 p-2 rounded mb-4 text-xs text-amber-800 text-left"><strong>Debug Mode Active:</strong> {error}</div>}
+                  {error && <div className="bg-amber-50 border border-amber-200 p-2 rounded mb-4 text-xs text-amber-800 text-left"><strong>System:</strong> {error}</div>}
+                  
+                  {/* TIMER DISPLAY */}
+                  <div className="flex justify-center items-center gap-2 mb-4 text-sm font-mono text-gray-500 bg-gray-100 py-2 rounded-lg">
+                     <Timer className={`w-4 h-4 ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-gray-500'}`} />
+                     <span className={timeLeft < 10 ? 'text-red-600 font-bold' : ''}>Session expires in {timeLeft}s</span>
+                  </div>
+
                   <form onSubmit={handleVerifyCode}>
                       <input type="text" maxLength={6} className="w-full text-center text-3xl font-mono tracking-[0.5em] border-2 border-gray-200 rounded-xl py-4 px-2 focus:border-amber-500 outline-none transition-all placeholder:text-gray-200 mb-4" value={inputCode} onChange={(e) => setInputCode(e.target.value.replace(/\D/g, ''))} placeholder="000000" autoFocus />
-                      <button type="submit" className="w-full py-4 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-lg mb-3">Verify & Unlock</button>
+                      <button type="submit" className="w-full py-4 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-lg mb-3">Verify Login</button>
                   </form>
-                  <button onClick={() => { setAuthStep('init'); setError(''); }} className="text-xs text-gray-400 hover:text-gray-600 underline">Resend Code</button>
+                  <button onClick={() => { setAuthStep('init'); setError(''); setServerCode(null); }} className="text-xs text-gray-400 hover:text-gray-600 underline">Cancel</button>
               </div>
           )}
         </div>
