@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download, Info, Mail, Lock, BellRing, ArrowRight, Quote, ShieldCheck, CreditCard, Youtube, Award, ThumbsUp, Printer, FileText } from 'lucide-react';
 import { supabase } from './lib/supabase/client';
@@ -84,16 +83,12 @@ const App: React.FC = () => {
         const { data, error } = await supabase.from('products').select('*');
         if (error) throw error;
         if (data && data.length > 0) {
-            // Sort to keep sauces first, then bundles, or stick to default DB order
-            // Ideally we want bundles to be identifiable.
-            // We map the DB snake_case (if any) to our camelCase Types if needed, 
-            // but our SQL table columns match our Product interface mostly.
-            // Note: Postgres uses lowercase column names.
+            // Map DB snake_case columns to camelCase Types
             const mappedProducts: Product[] = data.map((p: any) => ({
                 id: p.id,
                 sku: p.sku,
                 name: p.name,
-                subName: p.sub_name, // DB uses snake_case usually
+                subName: p.sub_name, 
                 description: p.description,
                 price: p.price,
                 image: p.image,
@@ -207,7 +202,6 @@ const App: React.FC = () => {
              key: data.payfast_merchant_key || PAYFAST_DEFAULTS.merchant_key,
              isLive: data.is_live_mode
            });
-           console.log("Store settings updated. Active Mode:", data.is_live_mode ? "LIVE" : "TEST");
         }
       } catch (err) {
         console.debug("Using default settings (offline or first run)");
@@ -374,9 +368,7 @@ const App: React.FC = () => {
 
   const addSaucePack = (product: Product, size: 3 | 6) => {
     // Dynamic Pricing Logic based on current Product state
-    // We assume 3-pack is 315 and 6-pack is 480 as defaults, 
-    // but ideally these should come from the DB product variants if we had them.
-    // For now we keep the bulk discount logic hardcoded but using the product object from DB.
+    // We assume 3-pack is 315 and 6-pack is 480 as defaults
     const price = size === 3 ? 315 : 480;
     addToCart(product, 1, undefined, `${size}-Pack`, price);
   };
