@@ -46,6 +46,13 @@ export interface StoreSettings {
   // ANALYTICS
   meta_pixel_id?: string;
   google_analytics_id?: string;
+
+  // INVOICING DETAILS
+  company_name?: string;
+  company_address?: string;
+  company_vat?: string;
+  company_reg?: string;
+  invoice_footer_text?: string;
 }
 
 // Window interface (Cleaned up)

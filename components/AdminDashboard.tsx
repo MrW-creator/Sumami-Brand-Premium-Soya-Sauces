@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database, CreditCard, AlertCircle, EyeOff, Beaker, Server, Activity } from 'lucide-react';
+import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database, CreditCard, AlertCircle, EyeOff, Beaker, Server, Activity, FileText, Briefcase, Tag, Package } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { PAYFAST_DEFAULTS, ADMIN_EMAIL } from '../constants';
 import { StoreSettings } from '../types';
@@ -23,6 +23,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
   // Dashboard Data State
   const [orders, setOrders] = useState<any[]>([]);
   const [analyticsData, setAnalyticsData] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   
@@ -31,7 +32,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
   const [isSendingTracking, setIsSendingTracking] = useState(false);
   
   // View State
-  const [viewTab, setViewTab] = useState<'active' | 'history' | 'analytics' | 'settings'>('active');
+  const [viewTab, setViewTab] = useState<'active' | 'history' | 'analytics' | 'settings' | 'inventory'>('active');
 
   // Filter States
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,9 +50,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
     youtube_url: '',
     tiktok_url: '',
     meta_pixel_id: '',
-    google_analytics_id: ''
+    google_analytics_id: '',
+    company_name: '',
+    company_address: '',
+    company_vat: '',
+    company_reg: '',
+    invoice_footer_text: ''
   });
   const [savingSettings, setSavingSettings] = useState(false);
+  
+  // Inventory Edit State
+  const [editingProduct, setEditingProduct] = useState<string | null>(null);
+  const [productEdits, setProductEdits] = useState<any>({});
   
   // UI State for Keys Visibility
   const [showKey, setShowKey] = useState(false);
@@ -82,6 +92,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
         });
     }
   }, [selectedOrder]);
+  
+  // Fetch Inventory when tab is active
+  useEffect(() => {
+      if (isAuthenticated && viewTab === 'inventory') {
+          fetchInventory();
+      }
+  }, [isAuthenticated, viewTab]);
 
   const calculateStats = (data: any[]) => {
     const revenue = data.reduce((sum: number, order: any) => sum + (order.total_amount || 0), 0) || 0;
@@ -182,12 +199,43 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (isAuthenticated && viewTab === 'analytics') {
-      fetchAnalytics();
-    }
-  }, [viewTab, isAuthenticated]);
+  
+  const fetchInventory = async () => {
+      if (!supabase) return;
+      setLoading(true);
+      try {
+          const { data, error } = await supabase.from('products').select('*').order('name');
+          if (error) throw error;
+          setInventory(data || []);
+      } catch (err) {
+          console.error("Inventory fetch error", err);
+      } finally {
+          setLoading(false);
+      }
+  };
+  
+  const handleEditProduct = (product: any) => {
+      setEditingProduct(product.id);
+      setProductEdits({ price: product.price, badge: product.badge });
+  };
+  
+  const handleSaveProduct = async (id: string) => {
+      if (!supabase) return;
+      try {
+          const { error } = await supabase.from('products').update({
+              price: parseFloat(productEdits.price),
+              badge: productEdits.badge === '' ? null : productEdits.badge
+          }).eq('id', id);
+          
+          if (error) throw error;
+          
+          setInventory(prev => prev.map(p => p.id === id ? { ...p, price: parseFloat(productEdits.price), badge: productEdits.badge === '' ? null : productEdits.badge } : p));
+          setEditingProduct(null);
+          alert("Product Updated!");
+      } catch (err: any) {
+          alert("Error updating product: " + err.message);
+      }
+  };
 
   const fetchSettings = async () => {
     if (!supabase) return;
@@ -204,7 +252,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
             youtube_url: data.youtube_url || '',
             tiktok_url: data.tiktok_url || '',
             meta_pixel_id: data.meta_pixel_id || '',
-            google_analytics_id: data.google_analytics_id || ''
+            google_analytics_id: data.google_analytics_id || '',
+            company_name: data.company_name || '',
+            company_address: data.company_address || '',
+            company_vat: data.company_vat || '',
+            company_reg: data.company_reg || '',
+            invoice_footer_text: data.invoice_footer_text || ''
         });
       }
     } catch (err) {
@@ -227,7 +280,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
             youtube_url: settings.youtube_url?.trim(),
             tiktok_url: settings.tiktok_url?.trim(),
             meta_pixel_id: settings.meta_pixel_id?.trim(),
-            google_analytics_id: settings.google_analytics_id?.trim()
+            google_analytics_id: settings.google_analytics_id?.trim(),
+            company_name: settings.company_name?.trim(),
+            company_address: settings.company_address?.trim(),
+            company_vat: settings.company_vat?.trim(),
+            company_reg: settings.company_reg?.trim(),
+            invoice_footer_text: settings.invoice_footer_text?.trim()
         });
 
         if (error) throw error;
@@ -305,11 +363,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
     }
   };
 
+  const handlePrintInvoice = () => {
+    window.print();
+  };
+
   const displayedOrders = orders.filter(order => {
     const isHistory = order.status === 'shipped';
     if (viewTab === 'active' && isHistory) return false;
     if (viewTab === 'history' && !isHistory) return false;
-    if (viewTab === 'settings' || viewTab === 'analytics') return false; 
+    if (viewTab === 'settings' || viewTab === 'analytics' || viewTab === 'inventory') return false; 
     if (searchTerm) {
         const q = searchTerm.toLowerCase();
         if (!order.customer_name?.toLowerCase().includes(q) && 
@@ -384,7 +446,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
       </div>
 
       <div className="container mx-auto px-4 py-8 max-w-6xl no-print">
-        {(viewTab !== 'settings' && viewTab !== 'analytics') && (
+        {(viewTab !== 'settings' && viewTab !== 'analytics' && viewTab !== 'inventory') && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <div className="flex items-center justify-between mb-2"><h3 className="text-gray-500 text-sm font-medium">Total Revenue</h3><DollarSign className="w-5 h-5 text-green-500" /></div>
@@ -406,11 +468,88 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                 <div className="bg-white p-1 rounded-lg border border-gray-200 inline-flex shadow-sm">
                     <button onClick={() => setViewTab('active')} className={`px-4 py-2 rounded-md font-bold text-sm ${viewTab === 'active' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-50'}`}>Active Orders</button>
                     <button onClick={() => setViewTab('history')} className={`px-4 py-2 rounded-md font-bold text-sm ${viewTab === 'history' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-50'}`}>History</button>
+                    <button onClick={() => setViewTab('inventory')} className={`px-4 py-2 rounded-md font-bold text-sm ${viewTab === 'inventory' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-50'}`}>Inventory</button>
                     <button onClick={() => setViewTab('analytics')} className={`px-4 py-2 rounded-md font-bold text-sm ${viewTab === 'analytics' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-50'}`}>Analytics</button>
                     <button onClick={() => setViewTab('settings')} className={`px-4 py-2 rounded-md font-bold text-sm ${viewTab === 'settings' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-50'}`}>Settings</button>
                 </div>
             </div>
         </div>
+        
+        {viewTab === 'inventory' && (
+             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                    <div>
+                        <h2 className="text-xl font-black text-gray-900 flex items-center gap-2"><Package className="w-6 h-6 text-purple-600" /> Product Inventory</h2>
+                        <p className="text-gray-500 text-sm">Manage prices and badges in real-time.</p>
+                    </div>
+                    <button onClick={fetchInventory} className="text-gray-500 hover:text-gray-700"><RefreshCw className="w-5 h-5" /></button>
+                 </div>
+                 <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Product</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">SKU</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Price (ZAR)</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Badge</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {inventory.map((product) => (
+                                <tr key={product.id}>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <img src={product.image} alt="" className="w-10 h-10 rounded-md object-cover bg-gray-100" />
+                                            <div>
+                                                <div className="font-bold text-gray-900">{product.name}</div>
+                                                <div className="text-xs text-gray-500">{product.category}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-600 font-mono">{product.sku}</td>
+                                    <td className="px-6 py-4">
+                                        {editingProduct === product.id ? (
+                                            <input 
+                                                type="number" 
+                                                className="w-24 border border-purple-300 rounded p-1 text-sm focus:outline-none focus:border-purple-500"
+                                                value={productEdits.price}
+                                                onChange={(e) => setProductEdits({...productEdits, price: e.target.value})}
+                                            />
+                                        ) : (
+                                            <span className="font-bold text-gray-900">R {product.price}</span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {editingProduct === product.id ? (
+                                            <input 
+                                                type="text" 
+                                                className="w-32 border border-purple-300 rounded p-1 text-sm focus:outline-none focus:border-purple-500"
+                                                placeholder="e.g. Best Seller"
+                                                value={productEdits.badge || ''}
+                                                onChange={(e) => setProductEdits({...productEdits, badge: e.target.value})}
+                                            />
+                                        ) : (
+                                            product.badge && <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-1 rounded-full">{product.badge}</span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        {editingProduct === product.id ? (
+                                            <div className="flex justify-end gap-2">
+                                                <button onClick={() => handleSaveProduct(product.id)} className="bg-green-600 text-white p-1.5 rounded hover:bg-green-700"><CheckSquare className="w-4 h-4" /></button>
+                                                <button onClick={() => setEditingProduct(null)} className="bg-gray-200 text-gray-600 p-1.5 rounded hover:bg-gray-300"><X className="w-4 h-4" /></button>
+                                            </div>
+                                        ) : (
+                                            <button onClick={() => handleEditProduct(product)} className="text-purple-600 hover:text-purple-800 font-bold text-sm">Edit</button>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                 </div>
+             </div>
+        )}
 
         {viewTab === 'analytics' && (
             <div className="space-y-6">
@@ -434,7 +573,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-2xl mx-auto">
                  <div className="flex items-center gap-4 mb-6 border-b pb-4">
                      <div className="bg-gray-100 p-3 rounded-full"><Key className="w-8 h-8 text-gray-700" /></div>
-                     <div><h2 className="text-2xl font-black text-gray-900">Store Configuration</h2><p className="text-gray-500">Manage Payments & Analytics.</p></div>
+                     <div><h2 className="text-2xl font-black text-gray-900">Store Configuration</h2><p className="text-gray-500">Manage Payments & Invoicing.</p></div>
                  </div>
 
                  <div className="space-y-6">
@@ -444,18 +583,52 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                         <div><strong>PayFast Configuration</strong><p className="mt-1 mb-2 opacity-90">Enter your Merchant ID and Key.</p></div>
                      </div>
 
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-1">PayFast Merchant ID</label>
+                            <input type="text" className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 focus:border-amber-500 focus:bg-white outline-none" value={settings.payfast_merchant_id} onChange={(e) => setSettings(prev => ({...prev, payfast_merchant_id: e.target.value}))} placeholder="10000100" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-1">PayFast Merchant Key</label>
+                            <div className="relative">
+                                <input type={showKey ? "text" : "password"} className="w-full border border-gray-300 rounded-lg p-3 pr-12 bg-gray-50 focus:border-amber-500 focus:bg-white outline-none" value={settings.payfast_merchant_key} onChange={(e) => setSettings(prev => ({...prev, payfast_merchant_key: e.target.value}))} placeholder="46f0cd694581a" />
+                                <button type="button" onClick={() => setShowKey(!showKey)} className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">{showKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}</button>
+                            </div>
+                        </div>
+                     </div>
+
+                     {/* BUSINESS INFO SECTION */}
+                     <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-sm text-purple-900 flex items-start gap-3 mt-8">
+                        <Briefcase className="w-5 h-5 flex-shrink-0 mt-0.5 text-purple-600" />
+                        <div><strong>Business Invoice Details</strong><p className="mt-1 mb-2 opacity-90">These details will appear on the printable invoices.</p></div>
+                     </div>
+
                      <div>
-                         <label className="block text-sm font-bold text-gray-700 mb-1">PayFast Merchant ID</label>
-                         <input type="text" className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 focus:border-amber-500 focus:bg-white outline-none" value={settings.payfast_merchant_id} onChange={(e) => setSettings(prev => ({...prev, payfast_merchant_id: e.target.value}))} placeholder="10000100" />
+                         <label className="block text-sm font-bold text-gray-700 mb-1">Company Registered Name</label>
+                         <input type="text" className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 focus:border-purple-500 focus:bg-white outline-none" value={settings.company_name || ''} onChange={(e) => setSettings(prev => ({...prev, company_name: e.target.value}))} placeholder="e.g. Sumami Trading (Pty) Ltd" />
+                     </div>
+
+                     <div>
+                         <label className="block text-sm font-bold text-gray-700 mb-1">Full Address</label>
+                         <textarea className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 focus:border-purple-500 focus:bg-white outline-none h-20" value={settings.company_address || ''} onChange={(e) => setSettings(prev => ({...prev, company_address: e.target.value}))} placeholder="123 Example Street, City, Zip Code" />
+                     </div>
+
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                             <label className="block text-sm font-bold text-gray-700 mb-1">VAT Number (Optional)</label>
+                             <input type="text" className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 focus:border-purple-500 focus:bg-white outline-none" value={settings.company_vat || ''} onChange={(e) => setSettings(prev => ({...prev, company_vat: e.target.value}))} placeholder="4000..." />
+                        </div>
+                        <div>
+                             <label className="block text-sm font-bold text-gray-700 mb-1">Registration Number (Optional)</label>
+                             <input type="text" className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 focus:border-purple-500 focus:bg-white outline-none" value={settings.company_reg || ''} onChange={(e) => setSettings(prev => ({...prev, company_reg: e.target.value}))} placeholder="2023/..." />
+                        </div>
                      </div>
                      
                      <div>
-                         <label className="block text-sm font-bold text-gray-700 mb-1">PayFast Merchant Key</label>
-                         <div className="relative">
-                            <input type={showKey ? "text" : "password"} className="w-full border border-gray-300 rounded-lg p-3 pr-12 bg-gray-50 focus:border-amber-500 focus:bg-white outline-none" value={settings.payfast_merchant_key} onChange={(e) => setSettings(prev => ({...prev, payfast_merchant_key: e.target.value}))} placeholder="46f0cd694581a" />
-                            <button type="button" onClick={() => setShowKey(!showKey)} className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">{showKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}</button>
-                         </div>
+                         <label className="block text-sm font-bold text-gray-700 mb-1">Invoice Footer Text</label>
+                         <input type="text" className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 focus:border-purple-500 focus:bg-white outline-none" value={settings.invoice_footer_text || ''} onChange={(e) => setSettings(prev => ({...prev, invoice_footer_text: e.target.value}))} placeholder="Thank you for your business!" />
                      </div>
+
 
                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900 flex items-start gap-3 mt-8">
                         <Activity className="w-5 h-5 flex-shrink-0 mt-0.5 text-blue-600" />
@@ -512,7 +685,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
             </div>
         )}
         {/* Orders Table rendering preserved... */}
-        {(viewTab !== 'settings' && viewTab !== 'analytics') && (
+        {(viewTab !== 'settings' && viewTab !== 'analytics' && viewTab !== 'inventory') && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-[400px]">
                <div className="overflow-x-auto">
                 <table className="w-full text-left">
@@ -559,15 +732,97 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
         {selectedOrder && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
              <div className="absolute inset-0 bg-black/70 backdrop-blur-sm no-print" onClick={() => setSelectedOrder(null)}></div>
-             <div id="printable-invoice" className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl relative z-20 flex flex-col max-h-[90vh]">
-                 <div className="p-6 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl no-print-bg">
-                   <h3 className="text-2xl font-black text-gray-900">Invoice #{selectedOrder.id}</h3>
-                   <button onClick={() => setSelectedOrder(null)}><X className="w-6 h-6" /></button>
+             
+             {/* PROFESSIONAL PRINTABLE INVOICE */}
+             <div id="printable-invoice" className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl relative z-20 flex flex-col max-h-[90vh] overflow-hidden">
+                 
+                 {/* Modal Header - HIDDEN IN PRINT */}
+                 <div className="p-4 border-b flex justify-between items-center bg-gray-50 no-print">
+                   <h3 className="font-bold text-gray-900 flex items-center gap-2"><FileText className="w-5 h-5 text-gray-500"/> Invoice Preview</h3>
+                   <div className="flex items-center gap-2">
+                       <button onClick={handlePrintInvoice} className="bg-gray-900 hover:bg-black text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2"><Printer className="w-4 h-4" /> Print / Save PDF</button>
+                       <button onClick={() => setSelectedOrder(null)} className="p-2 hover:bg-gray-200 rounded-full"><X className="w-5 h-5 text-gray-500" /></button>
+                   </div>
                  </div>
-                 <div className="p-8 overflow-y-auto">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div><h4 className="font-bold">Customer</h4><p>{selectedOrder.customer_name}</p><p>{selectedOrder.email}</p></div>
-                        <div><h4 className="font-bold">Total</h4><p className="text-xl font-bold">R {selectedOrder.total_amount}</p></div>
+
+                 <div className="p-8 overflow-y-auto bg-white">
+                    {/* INVOICE HEADER */}
+                    <div className="flex justify-between items-start border-b border-gray-200 pb-8 mb-8">
+                        <div>
+                            <h1 className="text-4xl font-black text-gray-900 mb-2">INVOICE</h1>
+                            <p className="text-sm text-gray-500 font-bold">#{selectedOrder.id}</p>
+                            <div className="mt-4 text-sm text-gray-600">
+                                <p><strong>Date:</strong> {new Date(selectedOrder.created_at).toLocaleDateString()}</p>
+                                <p><strong>Status:</strong> <span className="uppercase">{selectedOrder.status === 'pending_payment' ? 'UNPAID' : 'PAID'}</span></p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <h2 className="text-xl font-bold text-gray-900 mb-1">{settings.company_name || 'Sumami Brand'}</h2>
+                            <div className="text-sm text-gray-500 whitespace-pre-wrap leading-relaxed">
+                                {settings.company_address || 'Amanzimtoti, KwaZulu-Natal\nSouth Africa'}
+                            </div>
+                            {settings.company_vat && <p className="text-sm text-gray-500 mt-2"><strong>VAT No:</strong> {settings.company_vat}</p>}
+                            {settings.company_reg && <p className="text-sm text-gray-500"><strong>Reg No:</strong> {settings.company_reg}</p>}
+                        </div>
+                    </div>
+
+                    {/* BILL TO */}
+                    <div className="mb-8">
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Bill To</h3>
+                        <p className="font-bold text-gray-900">{selectedOrder.customer_name}</p>
+                        <p className="text-sm text-gray-600">{selectedOrder.email}</p>
+                        <p className="text-sm text-gray-600">{selectedOrder.phone}</p>
+                        <p className="text-sm text-gray-600 max-w-xs">{selectedOrder.address_full}</p>
+                    </div>
+
+                    {/* TABLE */}
+                    <table className="w-full mb-8">
+                        <thead>
+                            <tr className="border-b-2 border-gray-900">
+                                <th className="text-left py-3 text-sm font-bold text-gray-900">Item</th>
+                                <th className="text-center py-3 text-sm font-bold text-gray-900">Qty</th>
+                                <th className="text-right py-3 text-sm font-bold text-gray-900">Price</th>
+                                <th className="text-right py-3 text-sm font-bold text-gray-900">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {selectedOrder.items?.map((item: any, idx: number) => (
+                                <tr key={idx}>
+                                    <td className="py-4 text-sm text-gray-800">
+                                        <span className="font-medium">{item.name}</span>
+                                        <div className="text-xs text-gray-500">{item.variant} {item.is_bonus && '(Bonus Item)'}</div>
+                                    </td>
+                                    <td className="py-4 text-center text-sm text-gray-600">{item.quantity}</td>
+                                    <td className="py-4 text-right text-sm text-gray-600">{item.price === 0 ? 'Free' : `R ${item.price.toFixed(2)}`}</td>
+                                    <td className="py-4 text-right text-sm font-bold text-gray-900">{item.price === 0 ? 'R 0.00' : `R ${(item.price * item.quantity).toFixed(2)}`}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {/* TOTALS */}
+                    <div className="flex justify-end">
+                        <div className="w-full max-w-xs space-y-2">
+                            <div className="flex justify-between text-sm text-gray-600">
+                                <span>Subtotal</span>
+                                <span>R {selectedOrder.total_amount.toFixed(2)}</span>
+                            </div>
+                            {settings.company_vat && (
+                                <div className="flex justify-between text-sm text-gray-500">
+                                    <span>Includes VAT (15%)</span>
+                                    <span>R {(selectedOrder.total_amount * 0.15 / 1.15).toFixed(2)}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between text-xl font-black text-gray-900 border-t-2 border-gray-900 pt-2 mt-2">
+                                <span>Total</span>
+                                <span>R {selectedOrder.total_amount.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* FOOTER */}
+                    <div className="mt-16 pt-8 border-t border-gray-200 text-center text-sm text-gray-500">
+                        <p>{settings.invoice_footer_text || 'Thank you for your business!'}</p>
                     </div>
                  </div>
              </div>

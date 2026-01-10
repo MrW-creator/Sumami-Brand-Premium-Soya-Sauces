@@ -55,10 +55,13 @@
           top: 0;
           width: 100%;
           height: 100%;
-          background: white;
+          background: white !important;
           padding: 20px;
           z-index: 9999;
           overflow: visible;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+          display: block !important;
         }
         .no-print {
           display: none !important;

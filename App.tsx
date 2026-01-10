@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download, Info, Mail, Lock, BellRing, ArrowRight, Quote, ShieldCheck, CreditCard, Youtube, Award, ThumbsUp } from 'lucide-react';
+import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download, Info, Mail, Lock, BellRing, ArrowRight, Quote, ShieldCheck, CreditCard, Youtube, Award, ThumbsUp, Printer, FileText } from 'lucide-react';
 import { supabase } from './lib/supabase/client';
-import { PRODUCTS, BUNDLES, ASSETS, COOKBOOK_DOWNLOAD_URL, PAYFAST_DEFAULTS } from './constants';
+import { PRODUCTS as INITIAL_PRODUCTS, ASSETS, COOKBOOK_DOWNLOAD_URL, PAYFAST_DEFAULTS } from './constants';
 import { Product, CartItem, CustomerDetails, StoreSettings } from './types';
 import Cart from './components/Cart';
 import PayFastCheckout from './components/PayFastCheckout';
@@ -35,6 +35,11 @@ const CUSTOMER_REVIEWS = [
 ];
 
 const App: React.FC = () => {
+  // --- DYNAMIC PRODUCTS STATE ---
+  // We initialize with the hardcoded constants to ensure immediate render (SSR/Static support)
+  // then useEffect updates it from the DB.
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
@@ -70,6 +75,40 @@ const App: React.FC = () => {
       isLive: false
   });
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+
+  // --- 1. FETCH PRODUCTS FROM DB ---
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (!supabase) return;
+      try {
+        const { data, error } = await supabase.from('products').select('*');
+        if (error) throw error;
+        if (data && data.length > 0) {
+            // Sort to keep sauces first, then bundles, or stick to default DB order
+            // Ideally we want bundles to be identifiable.
+            // We map the DB snake_case (if any) to our camelCase Types if needed, 
+            // but our SQL table columns match our Product interface mostly.
+            // Note: Postgres uses lowercase column names.
+            const mappedProducts: Product[] = data.map((p: any) => ({
+                id: p.id,
+                sku: p.sku,
+                name: p.name,
+                subName: p.sub_name, // DB uses snake_case usually
+                description: p.description,
+                price: p.price,
+                image: p.image,
+                category: p.category,
+                highlight: p.highlight,
+                badge: p.badge
+            }));
+            setProducts(mappedProducts);
+        }
+      } catch (err) {
+        console.error("Using fallback products due to DB error:", err);
+      }
+    };
+    fetchProducts();
+  }, []);
 
   // --- ANALYTICS TRACKING ---
   useEffect(() => {
@@ -327,25 +366,6 @@ const App: React.FC = () => {
     }
   };
 
-  // --- SPECIAL ADMIN: ADD TEST PRODUCT (UPDATED FOR PAYFAST) ---
-  const handleAddTestProduct = () => {
-    const testProduct: Product = {
-        id: 'live-test-prod',
-        sku: 'TEST-LIVE-001',
-        name: 'Live Test Product',
-        subName: 'Admin Verification',
-        description: 'Hidden item for testing live PayFast payments.',
-        price: 5, // R5.00 (PayFast Minimum)
-        image: 'https://placehold.co/400x400/22c55e/ffffff?text=TEST',
-        category: 'sauce',
-        badge: 'Admin Only'
-    };
-    
-    addToCart(testProduct, 1);
-    setIsAdminOpen(false); // Close admin panel
-    setIsCartOpen(true); // Open cart to proceed to checkout
-  };
-
   const handleBonusSelect = (product: Product, variant: string) => {
       addToCart(product, 1, undefined, variant, 0, true);
       setIsBonusSelectorOpen(false);
@@ -353,6 +373,10 @@ const App: React.FC = () => {
   };
 
   const addSaucePack = (product: Product, size: 3 | 6) => {
+    // Dynamic Pricing Logic based on current Product state
+    // We assume 3-pack is 315 and 6-pack is 480 as defaults, 
+    // but ideally these should come from the DB product variants if we had them.
+    // For now we keep the bulk discount logic hardcoded but using the product object from DB.
     const price = size === 3 ? 315 : 480;
     addToCart(product, 1, undefined, `${size}-Pack`, price);
   };
@@ -379,10 +403,10 @@ const App: React.FC = () => {
   };
 
   const handleBuilderComplete = (selectedIds: string[]) => {
-    const trioProduct = BUNDLES.find(b => b.id === 'starter-pack');
+    const trioProduct = products.find(b => b.id === 'starter-pack');
     if (trioProduct) {
       const selectedNames = selectedIds.map(id => {
-        const p = PRODUCTS.find(p => p.id === id);
+        const p = products.find(p => p.id === id);
         return p ? p.name.replace('Infused With ', '') : id;
       });
       addToCart(trioProduct, 1, selectedNames, '3-Pack');
@@ -415,6 +439,22 @@ const App: React.FC = () => {
     setIsCartOpen(false);
     setCheckoutStep('details');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // --- DEBUG/TESTING FUNCTION ---
+  const handleAddTestProduct = () => {
+    addToCart({
+      id: 'test-product',
+      sku: 'TEST-001',
+      name: 'Live Gateway Test Item',
+      subName: 'Debug Item',
+      description: 'This is a hidden item to test real money transactions.',
+      price: 5, // R5.00
+      image: ASSETS.seal,
+      category: 'sauce'
+    }, 1, undefined, 'Single');
+    setIsAdminOpen(false);
+    setIsCartOpen(true);
   };
 
   // ... [Database Saving Logic] ...
@@ -516,6 +556,13 @@ const App: React.FC = () => {
                 </div>
                 <p className="text-blue-800 text-sm">We've emailed your invoice to: <strong>{customerDetails.email}</strong></p>
             </div>
+
+            <button 
+              onClick={() => window.print()}
+              className="flex items-center justify-center gap-2 w-full bg-white border-2 border-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-50 transition-colors mb-6 shadow-sm"
+            >
+              <Printer className="w-5 h-5" /> Download Tax Invoice
+            </button>
             
             <div className="bg-gray-50 rounded-xl p-6 text-left border border-gray-100 mb-6">
                <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-2">
@@ -566,6 +613,91 @@ const App: React.FC = () => {
             <button onClick={() => setCheckoutStep('cart')} className="text-gray-400 font-medium hover:text-gray-900 transition-colors">Back to Home</button>
           </div>
         </div>
+
+        {/* --- HIDDEN INVOICE TEMPLATE (VISIBLE ON PRINT) --- */}
+        <div id="printable-invoice" className="hidden">
+           <div className="p-8">
+                {/* INVOICE HEADER */}
+                <div className="flex justify-between items-start border-b border-gray-200 pb-8 mb-8">
+                    <div>
+                        <h1 className="text-4xl font-black text-gray-900 mb-2">INVOICE</h1>
+                        <p className="text-sm text-gray-500 font-bold">#{`WEB-${Date.now().toString().slice(-6)}`}</p>
+                        <div className="mt-4 text-sm text-gray-600">
+                            <p><strong>Date:</strong> {new Date().toLocaleDateString()}</p>
+                            <p><strong>Status:</strong> <span className="uppercase">PAID</span></p>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <h2 className="text-xl font-bold text-gray-900 mb-1">{storeSettings?.company_name || 'Sumami Brand'}</h2>
+                        <div className="text-sm text-gray-500 whitespace-pre-wrap leading-relaxed">
+                            {storeSettings?.company_address || 'Amanzimtoti, KwaZulu-Natal\nSouth Africa'}
+                        </div>
+                        {storeSettings?.company_vat && <p className="text-sm text-gray-500 mt-2"><strong>VAT No:</strong> {storeSettings.company_vat}</p>}
+                        {storeSettings?.company_reg && <p className="text-sm text-gray-500"><strong>Reg No:</strong> {storeSettings.company_reg}</p>}
+                    </div>
+                </div>
+
+                {/* BILL TO */}
+                <div className="mb-8">
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Bill To</h3>
+                    <p className="font-bold text-gray-900">{customerDetails.firstName} {customerDetails.lastName}</p>
+                    <p className="text-sm text-gray-600">{customerDetails.email}</p>
+                    <p className="text-sm text-gray-600">{customerDetails.phone}</p>
+                    <p className="text-sm text-gray-600 max-w-xs">{customerDetails.address}, {customerDetails.city}, {customerDetails.zipCode}</p>
+                </div>
+
+                {/* TABLE */}
+                <table className="w-full mb-8">
+                    <thead>
+                        <tr className="border-b-2 border-gray-900">
+                            <th className="text-left py-3 text-sm font-bold text-gray-900">Item</th>
+                            <th className="text-center py-3 text-sm font-bold text-gray-900">Qty</th>
+                            <th className="text-right py-3 text-sm font-bold text-gray-900">Price</th>
+                            <th className="text-right py-3 text-sm font-bold text-gray-900">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {lastOrder.items?.map((item, idx) => (
+                            <tr key={idx}>
+                                <td className="py-4 text-sm text-gray-800">
+                                    <span className="font-medium">{item.name}</span>
+                                    <div className="text-xs text-gray-500">{item.variantLabel} {item.isBonus && '(Bonus Item)'}</div>
+                                </td>
+                                <td className="py-4 text-center text-sm text-gray-600">{item.quantity}</td>
+                                <td className="py-4 text-right text-sm text-gray-600">{item.price === 0 ? 'Free' : `R ${item.price.toFixed(2)}`}</td>
+                                <td className="py-4 text-right text-sm font-bold text-gray-900">{item.price === 0 ? 'R 0.00' : `R ${(item.price * item.quantity).toFixed(2)}`}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+
+                {/* TOTALS */}
+                <div className="flex justify-end">
+                    <div className="w-full max-w-xs space-y-2">
+                        <div className="flex justify-between text-sm text-gray-600">
+                            <span>Subtotal</span>
+                            <span>R {lastOrder.total.toFixed(2)}</span>
+                        </div>
+                        {storeSettings?.company_vat && (
+                            <div className="flex justify-between text-sm text-gray-500">
+                                <span>Includes VAT (15%)</span>
+                                <span>R {(lastOrder.total * 0.15 / 1.15).toFixed(2)}</span>
+                            </div>
+                        )}
+                        <div className="flex justify-between text-xl font-black text-gray-900 border-t-2 border-gray-900 pt-2 mt-2">
+                            <span>Total</span>
+                            <span>R {lastOrder.total.toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* FOOTER */}
+                <div className="mt-16 pt-8 border-t border-gray-200 text-center text-sm text-gray-500">
+                    <p>{storeSettings?.invoice_footer_text || 'Thank you for your business!'}</p>
+                </div>
+            </div>
+        </div>
+
       </div>
     );
   }
@@ -623,7 +755,7 @@ const App: React.FC = () => {
         isOpen={isBonusSelectorOpen}
         onClose={() => setIsBonusSelectorOpen(false)}
         onSelect={handleBonusSelect}
-        products={PRODUCTS}
+        products={products}
         countToSelect={activeBonusVariant === '6-Pack' ? missingBonuses6 : missingBonuses3}
         variant={activeBonusVariant}
       />
@@ -632,7 +764,7 @@ const App: React.FC = () => {
         isOpen={isUpsellSelectorOpen}
         onClose={() => setIsUpsellSelectorOpen(false)}
         onSelect={handleUpsellSelect}
-        products={PRODUCTS}
+        products={products}
         variant={activeUpsellVariant}
       />
 
@@ -640,7 +772,7 @@ const App: React.FC = () => {
         isOpen={isBuilderOpen}
         onClose={() => setIsBuilderOpen(false)}
         onComplete={handleBuilderComplete}
-        products={PRODUCTS}
+        products={products}
       />
 
       <LegalModal 
@@ -880,7 +1012,7 @@ const App: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {PRODUCTS.filter(p => p.category === 'sauce').map((product) => (
+                {products.filter(p => p.category === 'sauce').map((product) => (
                   <div key={product.id} className="group relative bg-white rounded-2xl overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-100 flex flex-col">
                     <div className="aspect-[4/3] bg-gray-50 overflow-hidden relative">
                       <div className="absolute inset-0 bg-gray-100 animate-pulse"></div>
@@ -1046,7 +1178,7 @@ const App: React.FC = () => {
               </div>
               
               <div className="flex flex-col md:flex-row justify-center gap-8 max-w-5xl mx-auto">
-                {BUNDLES.map((bundle) => (
+                {products.filter(p => p.category === 'bundle').map((bundle) => (
                    <div key={bundle.id} className={`flex-1 bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col relative ${bundle.highlight ? 'ring-4 ring-amber-500 transform md:-translate-y-4' : ''}`}>
                       <div className="aspect-video overflow-hidden">
                         <img src={bundle.image} alt={bundle.name} className="w-full h-full object-cover" />
