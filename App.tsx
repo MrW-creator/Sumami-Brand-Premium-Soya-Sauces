@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download, Info, Mail, Lock, BellRing, ArrowRight, Quote, ShieldCheck, CreditCard, Youtube, Award, ThumbsUp, Printer, FileText } from 'lucide-react';
+import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download, Info, Mail, Lock, BellRing, ArrowRight, Quote, ShieldCheck, CreditCard, Youtube, Award, ThumbsUp, Printer, FileText, AlertTriangle } from 'lucide-react';
 import { supabase } from './lib/supabase/client';
 import { PRODUCTS as INITIAL_PRODUCTS, ASSETS, COOKBOOK_DOWNLOAD_URL, PAYFAST_DEFAULTS } from './constants';
 import { Product, CartItem, CustomerDetails, StoreSettings } from './types';
@@ -69,6 +69,7 @@ const App: React.FC = () => {
   // --- SECURITY: ANTI-BOT STATE ---
   const [formStartTime, setFormStartTime] = useState<number>(0);
   const [honeypot, setHoneypot] = useState<string>(''); // If this gets filled, it's a bot
+  const [formErrors, setFormErrors] = useState<string[]>([]); // UI Errors
 
   const [lastOrder, setLastOrder] = useState<{items: CartItem[], total: number} | null>(null);
   
@@ -445,6 +446,7 @@ const App: React.FC = () => {
     setCheckoutStep('details');
     // Start the bot timer
     setFormStartTime(Date.now());
+    setFormErrors([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -514,18 +516,47 @@ const App: React.FC = () => {
 
   const handleDetailsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormErrors([]);
 
-    // --- SECURITY CHECK: HONEYPOT ---
+    // --- SECURITY CHECK 1: HONEYPOT ---
     if (honeypot) {
         console.warn("Bot detected: Honeypot field filled.");
-        return; // Silent fail
+        return; // Silent fail (Bot thinks it worked)
     }
 
-    // --- SECURITY CHECK: SPEED LIMIT ---
+    // --- SECURITY CHECK 2: SPEED LIMIT ---
     const timeTaken = Date.now() - formStartTime;
     if (timeTaken < 3000) { // If filled in under 3 seconds
         console.warn("Bot detected: Form filled too fast.");
         return; // Silent fail
+    }
+
+    // --- SECURITY CHECK 3: DATA VALIDATION ---
+    const errors: string[] = [];
+    
+    // Validate Phone (Basic Length Check for ZA numbers)
+    // Strip non-digits
+    const cleanPhone = customerDetails.phone.replace(/\D/g, '');
+    if (cleanPhone.length < 9 || cleanPhone.length > 15) {
+        errors.push("Please enter a valid phone number (e.g., 082 123 4567).");
+    }
+
+    // Validate Email (Regex)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(customerDetails.email)) {
+        errors.push("Please enter a valid email address.");
+    }
+
+    // Validate Address Length
+    if (customerDetails.address.trim().length < 5) {
+        errors.push("Please enter a complete street address.");
+    }
+
+    if (errors.length > 0) {
+        setFormErrors(errors);
+        // Scroll to top of form to see errors
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
     }
     
     // Save locally for retrieval after redirect
@@ -860,6 +891,21 @@ const App: React.FC = () => {
               </div>
               <form onSubmit={handleDetailsSubmit} className="space-y-6 relative">
                 
+                {/* --- ERROR DISPLAY --- */}
+                {formErrors.length > 0 && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl mb-4 animate-in slide-in-from-top-2">
+                        <div className="flex items-center gap-2 font-bold mb-2">
+                            <AlertTriangle className="w-5 h-5" />
+                            Please fix the following:
+                        </div>
+                        <ul className="list-disc list-inside text-sm space-y-1">
+                            {formErrors.map((err, i) => (
+                                <li key={i}>{err}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+
                 {/* --- SECURITY: HONEYPOT FIELD (Bot Trap) --- */}
                 <input 
                     type="text" 
