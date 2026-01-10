@@ -48,6 +48,9 @@ const USE_SUPABASE_IMAGES = true;
 export const ASSETS = {
   // UPDATED: Now looking at the ROOT of public-images bucket (no 'site' folder)
   
+  // Brand Logo
+  logo: 'https://lnzloecnqcxknozokflr.supabase.co/storage/v1/object/public/public-images/Sumami%20Brand%20Text%20logo%2072.webp',
+
   // Updated to 'Hero 1.webp'
   heroBg: USE_SUPABASE_IMAGES 
     ? `${SUPABASE_STORAGE_URL}/Hero%201.webp` 

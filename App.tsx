@@ -628,8 +628,9 @@ const App: React.FC = () => {
                             <p><strong>Status:</strong> <span className="uppercase">PAID</span></p>
                         </div>
                     </div>
-                    <div className="text-right">
-                        <h2 className="text-xl font-bold text-gray-900 mb-1">{storeSettings?.company_name || 'Sumami Brand'}</h2>
+                    <div className="text-right flex flex-col items-end">
+                        {/* INSERTED LOGO HERE */}
+                        <img src={ASSETS.logo} alt="Sumami Brand" className="h-12 w-auto mb-2" />
                         <div className="text-sm text-gray-500 whitespace-pre-wrap leading-relaxed">
                             {storeSettings?.company_address || 'Amanzimtoti, KwaZulu-Natal\nSouth Africa'}
                         </div>
@@ -712,7 +713,8 @@ const App: React.FC = () => {
       <nav className="fixed top-0 w-full z-30 bg-white/90 backdrop-blur-md border-b border-gray-100 transition-all">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-black text-amber-600 tracking-tighter">Sumami Brand</span>
+            {/* LOGO REPLACEMENT IN NAVBAR */}
+            <img src={ASSETS.logo} alt="Sumami Brand" className="h-8 md:h-10 w-auto" />
           </div>
           <div className="flex items-center gap-6">
             <button 
