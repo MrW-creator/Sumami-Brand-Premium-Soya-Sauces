@@ -66,6 +66,10 @@ const App: React.FC = () => {
     firstName: '', lastName: '', email: '', phone: '', address: '', city: '', zipCode: ''
   });
 
+  // --- SECURITY: ANTI-BOT STATE ---
+  const [formStartTime, setFormStartTime] = useState<number>(0);
+  const [honeypot, setHoneypot] = useState<string>(''); // If this gets filled, it's a bot
+
   const [lastOrder, setLastOrder] = useState<{items: CartItem[], total: number} | null>(null);
   
   // Dynamic Settings State
@@ -439,6 +443,8 @@ const App: React.FC = () => {
   const startCheckout = () => {
     setIsCartOpen(false);
     setCheckoutStep('details');
+    // Start the bot timer
+    setFormStartTime(Date.now());
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -508,6 +514,19 @@ const App: React.FC = () => {
 
   const handleDetailsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // --- SECURITY CHECK: HONEYPOT ---
+    if (honeypot) {
+        console.warn("Bot detected: Honeypot field filled.");
+        return; // Silent fail
+    }
+
+    // --- SECURITY CHECK: SPEED LIMIT ---
+    const timeTaken = Date.now() - formStartTime;
+    if (timeTaken < 3000) { // If filled in under 3 seconds
+        console.warn("Bot detected: Form filled too fast.");
+        return; // Silent fail
+    }
     
     // Save locally for retrieval after redirect
     const pendingOrder = {
@@ -839,7 +858,19 @@ const App: React.FC = () => {
                   You’ll confirm payment on the next step.
                 </p>
               </div>
-              <form onSubmit={handleDetailsSubmit} className="space-y-6">
+              <form onSubmit={handleDetailsSubmit} className="space-y-6 relative">
+                
+                {/* --- SECURITY: HONEYPOT FIELD (Bot Trap) --- */}
+                <input 
+                    type="text" 
+                    name="fax_number" 
+                    tabIndex={-1} 
+                    autoComplete="off"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                    style={{ opacity: 0, position: 'absolute', top: 0, left: 0, height: 0, width: 0, zIndex: -1 }} 
+                />
+
                 <div className="grid grid-cols-2 gap-4">
                   <div><label className="block text-sm font-medium text-gray-700 mb-1">First Name</label><input required className="w-full border border-gray-300 rounded-lg p-3 outline-none" value={customerDetails.firstName} onChange={e => setCustomerDetails({...customerDetails, firstName: e.target.value})} /></div>
                   <div><label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label><input required className="w-full border border-gray-300 rounded-lg p-3 outline-none" value={customerDetails.lastName} onChange={e => setCustomerDetails({...customerDetails, lastName: e.target.value})} /></div>
