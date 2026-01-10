@@ -9,7 +9,7 @@ import {
   AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, 
   Database, CreditCard, AlertCircle, EyeOff, Beaker, 
   Server, Activity, FileText, Briefcase, Tag, Package, 
-  Calculator, Timer, UserCheck, Edit2 
+  Calculator, Timer, UserCheck, Edit2, MessageCircle 
 } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { PAYFAST_DEFAULTS, ADMIN_EMAIL, ASSETS } from '../constants';
@@ -56,7 +56,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
   const [isSendingTracking, setIsSendingTracking] = useState(false);
   
   // View State
-  const [viewTab, setViewTab] = useState<'active' | 'history' | 'analytics' | 'settings' | 'inventory'>('active');
+  const [viewTab, setViewTab] = useState<'active' | 'recovery' | 'history' | 'analytics' | 'settings' | 'inventory'>('active');
 
   // Filter States
   const [searchTerm, setSearchTerm] = useState('');
@@ -90,7 +90,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalOrders: 0,
-    avgOrderValue: 0
+    avgOrderValue: 0,
+    recoveryOpportunities: 0
   });
 
   // Check for existing session on mount
@@ -126,16 +127,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
   }, [isAuthenticated, viewTab]);
 
   const calculateStats = (data: any[]) => {
-    // Only count paid or shipped orders for revenue, exclude pending/cancelled if desired
-    // For now, we sum everything that isn't explicitly 'cancelled'
-    const validOrders = data.filter(o => o.status !== 'cancelled');
+    // Revenue: Shipped or Paid
+    const validOrders = data.filter(o => o.status === 'paid' || o.status === 'shipped');
     const revenue = validOrders.reduce((sum: number, order: any) => sum + (order.total_amount || 0), 0) || 0;
     const count = validOrders.length || 0;
+    
+    // Recovery: Pending payment > 30 mins ago
+    const now = new Date();
+    const recoveryCount = data.filter(o => {
+        if (o.status !== 'pending_payment') return false;
+        const created = new Date(o.created_at);
+        const diffMins = (now.getTime() - created.getTime()) / 60000;
+        return diffMins > 30;
+    }).length;
     
     setStats({
       totalRevenue: revenue,
       totalOrders: count,
-      avgOrderValue: count > 0 ? revenue / count : 0
+      avgOrderValue: count > 0 ? revenue / count : 0,
+      recoveryOpportunities: recoveryCount
     });
   };
 
@@ -166,8 +176,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
 
         if (fnError) {
              console.error("Function Error:", fnError);
-             // Fallback for dev/testing if email fails
-             // alert(`DEV MODE CODE: ${code}`);
         }
         setAuthStep('verify');
 
@@ -417,13 +425,36 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
       }
   };
 
+  const getWhatsAppRecoveryLink = (order: any) => {
+      const phone = order.phone.replace(/\D/g, ''); // Strip non-digits
+      const validPhone = phone.startsWith('0') ? '27' + phone.substring(1) : phone;
+      const msg = `Hi ${order.customer_name.split(' ')[0]}! 👋 I noticed you were looking at some Sumami sauces but didn't finish your order. Did you have any trouble with checkout? Let me know if I can help!`;
+      return `https://wa.me/${validPhone}?text=${encodeURIComponent(msg)}`;
+  };
+
   const handlePrintInvoice = () => window.print();
 
   const displayedOrders = orders.filter(order => {
+    // 1. FILTER: Status Based
     const isHistory = order.status === 'shipped';
-    if (viewTab === 'active' && isHistory) return false;
+    const isRecovery = order.status === 'pending_payment';
+    // Active = 'paid' OR recent 'pending' (less than 30 mins old)
+    // Recovery = 'pending' AND older than 30 mins
+    
+    const now = new Date();
+    const created = new Date(order.created_at);
+    const diffMins = (now.getTime() - created.getTime()) / 60000;
+    const isAbandoned = isRecovery && diffMins > 30;
+
+    if (viewTab === 'active') {
+        if (isHistory || isAbandoned) return false;
+    }
     if (viewTab === 'history' && !isHistory) return false;
+    if (viewTab === 'recovery' && !isAbandoned) return false;
+
     if (viewTab === 'settings' || viewTab === 'analytics' || viewTab === 'inventory') return false; 
+    
+    // 2. SEARCH
     if (searchTerm) {
         const q = searchTerm.toLowerCase();
         if (!order.customer_name?.toLowerCase().includes(q) && 
@@ -499,6 +530,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                 <button onClick={() => setViewTab('active')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${viewTab === 'active' ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50'}`}>
                     <ShoppingBag className="w-5 h-5" /> Active Orders
                 </button>
+                <button onClick={() => setViewTab('recovery')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${viewTab === 'recovery' ? 'bg-red-50 text-red-700' : 'text-gray-600 hover:bg-gray-50'}`}>
+                    <RotateCcw className="w-5 h-5" /> Recovery 
+                    {stats.recoveryOpportunities > 0 && <span className="ml-auto bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full">{stats.recoveryOpportunities}</span>}
+                </button>
                 <button onClick={() => setViewTab('history')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${viewTab === 'history' ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50'}`}>
                     <Archive className="w-5 h-5" /> Order History
                 </button>
@@ -525,6 +560,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
         {/* Mobile Nav (Horizontal Scroll) */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30 flex overflow-x-auto p-2 gap-2">
              <button onClick={() => setViewTab('active')} className={`flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold ${viewTab === 'active' ? 'bg-amber-100 text-amber-800' : 'bg-gray-50 text-gray-600'}`}>Active</button>
+             <button onClick={() => setViewTab('recovery')} className={`flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold ${viewTab === 'recovery' ? 'bg-red-100 text-red-800' : 'bg-gray-50 text-gray-600'}`}>Recovery</button>
              <button onClick={() => setViewTab('history')} className={`flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold ${viewTab === 'history' ? 'bg-amber-100 text-amber-800' : 'bg-gray-50 text-gray-600'}`}>History</button>
              <button onClick={() => setViewTab('inventory')} className={`flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold ${viewTab === 'inventory' ? 'bg-blue-100 text-blue-800' : 'bg-gray-50 text-gray-600'}`}>Inventory</button>
              <button onClick={() => setViewTab('settings')} className={`flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold ${viewTab === 'settings' ? 'bg-gray-200 text-gray-800' : 'bg-gray-50 text-gray-600'}`}>Settings</button>
@@ -534,10 +570,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
         <div className="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-8 pb-20 md:pb-8">
             
             {/* ORDERS VIEW */}
-            {(viewTab === 'active' || viewTab === 'history') && (
+            {(viewTab === 'active' || viewTab === 'history' || viewTab === 'recovery') && (
                 <div className="space-y-6">
                     <div className="flex justify-between items-center">
-                        <h2 className="text-2xl font-bold text-gray-900">{viewTab === 'active' ? 'Active Orders' : 'Order History'}</h2>
+                        <h2 className="text-2xl font-bold text-gray-900">
+                            {viewTab === 'active' ? 'Active Orders' : viewTab === 'recovery' ? 'Abandoned Carts (Recovery)' : 'Order History'}
+                        </h2>
                         <div className="relative">
                             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                             <input 
@@ -564,11 +602,33 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {displayedOrders.length === 0 ? (
-                                    <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-400">No orders found.</td></tr>
+                                    <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-400">No orders found in this category.</td></tr>
                                 ) : (
                                     displayedOrders.map((order) => {
                                         const isShipped = order.status === 'shipped';
                                         const isPending = order.status === 'pending_payment';
+                                        
+                                        // Recovery View Specific
+                                        if (viewTab === 'recovery') {
+                                            return (
+                                                <tr key={order.id} className="hover:bg-red-50 transition-colors">
+                                                    <td className="px-6 py-4">
+                                                        <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded">Abandoned</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-gray-500">{new Date(order.created_at).toLocaleString()}</td>
+                                                    <td className="px-6 py-4"><div className="font-bold text-sm">{order.customer_name}</div><div className="text-xs text-gray-400">{order.phone}</div></td>
+                                                    <td className="px-6 py-4 text-sm text-gray-600">{order.items?.length || 0} items</td>
+                                                    <td className="px-6 py-4 font-bold text-sm">R {order.total_amount?.toFixed(2)}</td>
+                                                    <td className="px-6 py-4">
+                                                        <a href={getWhatsAppRecoveryLink(order)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors">
+                                                            <MessageCircle className="w-4 h-4" /> Recover via WhatsApp
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        }
+
+                                        // Standard View
                                         return (
                                             <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-6 py-4">
