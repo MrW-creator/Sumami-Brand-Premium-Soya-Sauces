@@ -40,6 +40,37 @@ serve(async (req) => {
 
     const { customerName, customerEmail, orderId, trackingNumber, courierName, trackingUrl } = await req.json() as RequestBody;
 
+    // Detect if this is a collection order
+    const isCollection = courierName === 'Self Collection';
+
+    // Dynamic Content based on Fulfillment Type
+    const headerTitle = isCollection ? 'Ready for Collection! 🛍️' : 'Order Shipped! 🚚';
+    
+    const mainMessage = isCollection 
+        ? `<p>Hi ${customerName},</p><p>Great news! Your order <strong>#${orderId}</strong> has been packed and is ready for collection.</p>`
+        : `<p>Hi ${customerName},</p><p>Great news! Your order <strong>#${orderId}</strong> has been packed and handed over to the courier.</p>`;
+
+    const detailsSection = isCollection
+        ? `<div class="card">
+              <h3 style="margin-top:0; color: #065f46;">Collection Details</h3>
+              <p style="margin: 5px 0;"><strong>Status:</strong> Ready for Pickup</p>
+              <p style="margin: 5px 0;"><strong>Location:</strong> Amanzimtoti, KZN</p>
+           </div>
+           <p>Please contact us on WhatsApp to arrange a specific pickup time if you haven't already.</p>
+           <div style="text-align: center; margin-top: 30px; margin-bottom: 30px;">
+              <a href="https://wa.me/27662434867" class="button">Contact for Pickup</a>
+           </div>`
+        : `<div class="card">
+              <h3 style="margin-top:0; color: #065f46;">Tracking Details</h3>
+              <p style="margin: 5px 0;"><strong>Courier:</strong> ${courierName}</p>
+              <p style="margin: 5px 0;"><strong>Tracking Number:</strong> ${trackingNumber}</p>
+            </div>
+            <p>You can track the progress of your delivery by clicking the button below:</p>
+            <div style="text-align: center; margin-top: 30px; margin-bottom: 30px;">
+              <a href="${trackingUrl}" class="button">Track My Package</a>
+            </div>
+            <p style="font-size: 14px; color: #666;">Note: Tracking events may take a few hours to update on the courier's website.</p>`;
+
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -57,25 +88,11 @@ serve(async (req) => {
       <body>
         <div class="container">
           <div class="header">
-            <h1 style="margin:0;">Order Shipped! 🚚</h1>
+            <h1 style="margin:0;">${headerTitle}</h1>
           </div>
           <div class="content">
-            <p>Hi ${customerName},</p>
-            <p>Great news! Your order <strong>#${orderId}</strong> has been packed and handed over to the courier.</p>
-            
-            <div class="card">
-              <h3 style="margin-top:0; color: #065f46;">Tracking Details</h3>
-              <p style="margin: 5px 0;"><strong>Courier:</strong> ${courierName}</p>
-              <p style="margin: 5px 0;"><strong>Tracking Number:</strong> ${trackingNumber}</p>
-            </div>
-
-            <p>You can track the progress of your delivery by clicking the button below:</p>
-            
-            <div style="text-align: center; margin-top: 30px; margin-bottom: 30px;">
-              <a href="${trackingUrl}" class="button">Track My Package</a>
-            </div>
-
-            <p style="font-size: 14px; color: #666;">Note: Tracking events may take a few hours to update on the courier's website.</p>
+            ${mainMessage}
+            ${detailsSection}
           </div>
           <div class="footer">
             <p>Sumami Brand &bull; Amanzimtoti, KZN &bull; 066 243 4867</p>
@@ -98,7 +115,7 @@ serve(async (req) => {
             name: "Sumami Shipping"
         },
         to: [{ email: customerEmail, name: customerName }],
-        subject: `Shipping Update: Order #${orderId} is on the way!`,
+        subject: isCollection ? `Order #${orderId} is Ready for Collection!` : `Shipping Update: Order #${orderId} is on the way!`,
         html: htmlContent,
       }),
     });

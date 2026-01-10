@@ -65,8 +65,8 @@ export const ASSETS = {
 
   seal: 'https://cdn-icons-png.flaticon.com/512/3502/3502601.png',
   
-  // Using PayFast Logo now
-  payfast: 'https://www.payfast.co.za/images/branding/payfast-logo.svg' 
+  // Using PayFast Logo now (Updated to new Supabase URL)
+  payfast: 'https://lnzloecnqcxknozokflr.supabase.co/storage/v1/object/public/public-images/Payfast%20Main%20Logo.jpg' 
 };
 
 // -----------------------------------------------------------------------------------------

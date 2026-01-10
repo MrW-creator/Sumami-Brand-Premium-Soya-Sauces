@@ -50,7 +50,7 @@ const PayFastCheckout: React.FC<PayFastCheckoutProps> = ({
         <div className="flex flex-col items-center gap-6 max-w-sm text-center p-6 bg-white rounded-2xl shadow-2xl border border-gray-100 relative">
              
              {/* PayFast Logo */}
-             <img src="https://www.payfast.co.za/images/branding/payfast-logo.svg" alt="PayFast" className="h-12 w-auto mb-2" />
+             <img src={ASSETS.payfast} alt="PayFast" className="h-12 w-auto mb-2" />
              
              <div className="space-y-4">
                 <div className="flex flex-col items-center justify-center gap-3">

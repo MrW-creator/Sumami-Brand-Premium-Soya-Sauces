@@ -881,7 +881,7 @@ const App: React.FC = () => {
                 <div className="mt-4 flex items-center justify-center gap-2">
                    <ShieldCheck className="w-4 h-4 text-gray-400" />
                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Secured by</span>
-                   <img src="https://www.payfast.co.za/images/branding/payfast-logo.svg" alt="PayFast" className="h-5" />
+                   <img src={ASSETS.payfast} alt="PayFast" className="h-5" />
                 </div>
               </form>
             </div>
@@ -1283,7 +1283,7 @@ const App: React.FC = () => {
 
                    <div className="flex flex-col items-center">
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Powered By</p>
-                      <img src="https://www.payfast.co.za/images/branding/payfast-logo.svg" alt="PayFast" className="h-8" />
+                      <img src={ASSETS.payfast} alt="PayFast" className="h-8" />
                    </div>
 
                    <div className="h-10 w-px bg-gray-200 hidden md:block"></div>
