@@ -925,10 +925,10 @@ const App: React.FC = () => {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 animate-in fade-in duration-1000 delay-300">
                   <button 
-                    onClick={() => scrollToSection('bundles')}
+                    onClick={() => scrollToSection('flavours')}
                     className="px-8 py-4 bg-amber-600 hover:bg-amber-700 text-white rounded-full font-bold text-lg shadow-lg shadow-amber-900/50 transition-all hover:scale-105 text-center cursor-pointer"
                   >
-                    Shop Bundles
+                    Start Shopping
                   </button>
                   <button 
                     onClick={() => scrollToSection('flavours')}
@@ -1011,13 +1011,17 @@ const App: React.FC = () => {
               <div className="text-center mb-16">
                 <h2 className="text-4xl font-black text-gray-900 mb-4">The Flavour Collection</h2>
                 <p className="text-gray-500 max-w-2xl mx-auto text-lg">
-                  Stock up on your favourites. Available in 3-packs or 6-packs.
+                  Shop individual flavours or select a curated value bundle.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {products.filter(p => p.category === 'sauce').map((product) => (
-                  <div key={product.id} className="group relative bg-white rounded-2xl overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-100 flex flex-col">
+                {/* COMBINED PRODUCT LIST: Sauces + Bundles = 9 Items (Perfect 3x3 Grid) */}
+                {[
+                    ...products.filter(p => p.category === 'sauce'),
+                    ...products.filter(p => p.category === 'bundle')
+                ].map((product) => (
+                  <div key={product.id} className={`group relative bg-white rounded-2xl overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-100 flex flex-col ${product.highlight ? 'ring-2 ring-amber-500' : ''}`}>
                     <div className="aspect-[4/3] bg-gray-50 overflow-hidden relative">
                       <div className="absolute inset-0 bg-gray-100 animate-pulse"></div>
                       <img 
@@ -1031,13 +1035,18 @@ const App: React.FC = () => {
                            {product.badge}
                         </div>
                       )}
+                      {product.highlight && (
+                         <div className="absolute top-4 left-4 bg-gray-900 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg z-10">
+                           Best Value
+                        </div>
+                      )}
                     </div>
                     <div className="p-6 flex-1 flex flex-col">
                       <div className="mb-4">
                         <p className="text-amber-600 font-bold text-xs tracking-wider uppercase mb-1">{product.subName}</p>
-                        <h3 className="text-2xl font-bold text-gray-900">{product.name}</h3>
+                        <h3 className="text-2xl font-bold text-gray-900 leading-tight">{product.name}</h3>
                       </div>
-                      <p className="text-gray-600 mb-6 flex-1">{product.description}</p>
+                      <p className="text-gray-600 mb-6 flex-1 text-sm leading-relaxed">{product.description}</p>
                       
                       <div className="flex items-center gap-2 mb-4">
                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -1045,26 +1054,33 @@ const App: React.FC = () => {
                       </div>
 
                       <div className="mt-auto">
-                        <div className="grid grid-cols-2 gap-3">
-                          <button 
-                            onClick={() => addSaucePack(product, 3)}
-                            className="px-2 py-3 bg-white border-2 border-gray-900 text-gray-900 rounded-lg font-bold hover:bg-gray-50 transition-colors text-sm flex flex-col items-center justify-center"
-                          >
-                            <span>Buy 3 Pack</span>
-                            {/* DYNAMIC PRICE DISPLAY */}
-                            <span className="text-xs font-normal text-gray-500">R {((product.price * 3) + shippingMarkup).toFixed(2)}</span>
-                          </button>
-                          <button 
-                            onClick={() => addSaucePack(product, 6)}
-                            className="px-2 py-3 bg-gray-900 text-white rounded-lg font-bold hover:bg-amber-600 transition-colors text-sm shadow-lg flex flex-col items-center justify-center relative overflow-hidden group/btn"
-                          >
-                            <div className="absolute inset-0 bg-white/10 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 skew-x-12"></div>
-                            
-                            <span>Buy 6 Pack</span>
-                            {/* DYNAMIC PRICE DISPLAY */}
-                            <span className="text-xs text-amber-400 font-bold">Best Value: R {((product.price * 6) + shippingMarkup).toFixed(2)}</span>
-                          </button>
-                        </div>
+                        {product.category === 'sauce' ? (
+                            <div className="grid grid-cols-2 gap-3">
+                              <button 
+                                onClick={() => addSaucePack(product, 3)}
+                                className="px-2 py-3 bg-white border-2 border-gray-900 text-gray-900 rounded-lg font-bold hover:bg-gray-50 transition-colors text-sm flex flex-col items-center justify-center"
+                              >
+                                <span>Buy 3 Pack</span>
+                                <span className="text-xs font-normal text-gray-500">R {((product.price * 3) + shippingMarkup).toFixed(2)}</span>
+                              </button>
+                              <button 
+                                onClick={() => addSaucePack(product, 6)}
+                                className="px-2 py-3 bg-gray-900 text-white rounded-lg font-bold hover:bg-amber-600 transition-colors text-sm shadow-lg flex flex-col items-center justify-center relative overflow-hidden group/btn"
+                              >
+                                <div className="absolute inset-0 bg-white/10 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 skew-x-12"></div>
+                                <span>Buy 6 Pack</span>
+                                <span className="text-xs text-amber-400 font-bold">R {((product.price * 6) + shippingMarkup).toFixed(2)}</span>
+                              </button>
+                            </div>
+                        ) : (
+                            <button 
+                                onClick={() => handleBundleClick(product)}
+                                className="w-full px-2 py-4 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold transition-all shadow-lg text-base flex flex-col items-center justify-center relative overflow-hidden group/btn active:scale-95"
+                            >
+                                <span className="relative z-10">{product.id === 'starter-pack' ? 'Build Your Trio' : 'Add to Cart'}</span>
+                                <span className="relative z-10 text-xs font-medium opacity-90">R {product.price.toFixed(2)}</span>
+                            </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1175,50 +1191,7 @@ const App: React.FC = () => {
              </div>
           </section>
 
-          <section id="bundles" className="py-20 bg-amber-50 scroll-mt-28">
-            <div className="container mx-auto px-4">
-              <div className="text-center mb-16">
-                 <span className="text-amber-600 font-bold tracking-widest uppercase">Best Value</span>
-                 <h2 className="text-4xl font-black text-gray-900 mt-2">Curated Collections</h2>
-                 <p className="text-gray-500 mt-2">Perfect for gifting or stocking up.</p>
-              </div>
-              
-              <div className="flex flex-col md:flex-row justify-center gap-8 max-w-5xl mx-auto">
-                {products.filter(p => p.category === 'bundle').map((bundle) => (
-                   <div key={bundle.id} className={`flex-1 bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col relative ${bundle.highlight ? 'ring-4 ring-amber-500 transform md:-translate-y-4' : ''}`}>
-                      <div className="aspect-video overflow-hidden">
-                        <img src={bundle.image} alt={bundle.name} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="p-8 flex flex-col flex-1">
-                        <h3 className="text-2xl font-bold text-gray-900">{bundle.name}</h3>
-                        <p className="text-amber-600 font-medium mb-4">{bundle.subName}</p>
-                        <p className="text-gray-600 mb-6 flex-1">{bundle.description}</p>
-                        
-                        <div className="mt-auto pt-6 border-t border-gray-100">
-                          <div className="flex items-end gap-2 mb-4">
-                             <span className="text-3xl font-black text-gray-900">R {bundle.price}</span>
-                             <span className="text-lg text-gray-400 line-through mb-1">R {Math.round(bundle.price * 1.15)}</span>
-                          </div>
-
-                          {bundle.id === 'starter-pack' && (
-                             <p className="text-xs text-gray-500 font-medium italic mb-4">
-                               "Cheaper than one takeaway. Used across dozens of meals."
-                             </p>
-                          )}
-
-                          <button 
-                            onClick={() => handleBundleClick(bundle)}
-                            className={`w-full py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl active:scale-95 ${bundle.highlight ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-gray-900 hover:bg-gray-800 text-white'}`}
-                          >
-                            {bundle.id === 'starter-pack' ? 'Build Your Pack' : 'Add to Cart'}
-                          </button>
-                        </div>
-                      </div>
-                   </div>
-                ))}
-              </div>
-            </div>
-          </section>
+          {/* REMOVED SEPARATE BUNDLES SECTION - NOW MERGED ABOVE */}
 
           <section className="py-20 bg-gray-50 relative overflow-hidden">
              <div className="absolute top-0 left-0 w-64 h-64 bg-amber-100 rounded-full blur-3xl opacity-50 -translate-x-1/2 -translate-y-1/2"></div>
