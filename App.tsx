@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingBag, Star, Check, ChevronRight, Menu, MapPin, Phone, Instagram, Facebook, Truck, BookOpen, Gift, Percent, Zap, MessageCircle, Download, Info, Mail, Lock, BellRing, ArrowRight, Quote, ShieldCheck, CreditCard, Youtube, Award, ThumbsUp, Printer, FileText } from 'lucide-react';
 import { supabase } from './lib/supabase/client';
@@ -74,6 +75,9 @@ const App: React.FC = () => {
       isLive: false
   });
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
+  
+  // DYNAMIC PRICING STATE (Default 150)
+  const [shippingMarkup, setShippingMarkup] = useState(150);
 
   // --- 1. FETCH PRODUCTS FROM DB ---
   useEffect(() => {
@@ -202,6 +206,10 @@ const App: React.FC = () => {
              key: data.payfast_merchant_key || PAYFAST_DEFAULTS.merchant_key,
              isLive: data.is_live_mode
            });
+           
+           if (data.shipping_markup !== undefined) {
+               setShippingMarkup(data.shipping_markup);
+           }
         }
       } catch (err) {
         console.debug("Using default settings (offline or first run)");
@@ -367,9 +375,8 @@ const App: React.FC = () => {
   };
 
   const addSaucePack = (product: Product, size: 3 | 6) => {
-    // Dynamic Pricing Logic based on current Product state
-    // We assume 3-pack is 315 and 6-pack is 480 as defaults
-    const price = size === 3 ? 315 : 480;
+    // Dynamic Pricing Logic: (SinglePrice * Size) + ShippingMarkup
+    const price = (product.price * size) + shippingMarkup;
     addToCart(product, 1, undefined, `${size}-Pack`, price);
   };
 
@@ -380,7 +387,8 @@ const App: React.FC = () => {
   };
 
   const handleUpsellSelect = (product: Product, variant: string) => {
-    const price = variant === '6-Pack' ? 480 : 315;
+    const size = variant === '3-Pack' ? 3 : 6;
+    const price = (product.price * size) + shippingMarkup;
     addToCart(product, 1, undefined, variant, price);
     setIsUpsellSelectorOpen(false);
     setIsCartOpen(true);
@@ -401,6 +409,7 @@ const App: React.FC = () => {
         const p = products.find(p => p.id === id);
         return p ? p.name.replace('Infused With ', '') : id;
       });
+      // The Starter Trio price is fetched from DB directly (usually matches dynamic logic but kept as DB product price for stability)
       addToCart(trioProduct, 1, selectedNames, '3-Pack');
     }
   };
@@ -758,6 +767,7 @@ const App: React.FC = () => {
         onSelect={handleUpsellSelect}
         products={products}
         variant={activeUpsellVariant}
+        shippingMarkup={shippingMarkup} // Pass dynamic markup
       />
 
       <BundleBuilder 
@@ -1039,7 +1049,8 @@ const App: React.FC = () => {
                             className="px-2 py-3 bg-white border-2 border-gray-900 text-gray-900 rounded-lg font-bold hover:bg-gray-50 transition-colors text-sm flex flex-col items-center justify-center"
                           >
                             <span>Buy 3 Pack</span>
-                            <span className="text-xs font-normal text-gray-500">R 315.00</span>
+                            {/* DYNAMIC PRICE DISPLAY */}
+                            <span className="text-xs font-normal text-gray-500">R {((product.price * 3) + shippingMarkup).toFixed(2)}</span>
                           </button>
                           <button 
                             onClick={() => addSaucePack(product, 6)}
@@ -1048,7 +1059,8 @@ const App: React.FC = () => {
                             <div className="absolute inset-0 bg-white/10 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 skew-x-12"></div>
                             
                             <span>Buy 6 Pack</span>
-                            <span className="text-xs text-amber-400 font-bold">Best Value: R 480</span>
+                            {/* DYNAMIC PRICE DISPLAY */}
+                            <span className="text-xs text-amber-400 font-bold">Best Value: R {((product.price * 6) + shippingMarkup).toFixed(2)}</span>
                           </button>
                         </div>
                       </div>

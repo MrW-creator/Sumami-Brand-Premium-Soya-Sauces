@@ -53,6 +53,9 @@ export interface StoreSettings {
   company_vat?: string;
   company_reg?: string;
   invoice_footer_text?: string;
+  
+  // DYNAMIC PRICING
+  shipping_markup?: number; // The "Hidden" cost added to packs (e.g. R150)
 }
 
 // Window interface (Cleaned up)

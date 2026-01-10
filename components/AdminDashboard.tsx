@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database, CreditCard, AlertCircle, EyeOff, Beaker, Server, Activity, FileText, Briefcase, Tag, Package } from 'lucide-react';
+import { Lock, RefreshCw, X, TrendingUp, ShoppingBag, DollarSign, Calendar, Eye, CheckSquare, Square, Truck, Printer, Archive, Clock, Search, Filter, RotateCcw, Settings, Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, MapPin, Smartphone, Monitor, Send, Link as LinkIcon, AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, Database, CreditCard, AlertCircle, EyeOff, Beaker, Server, Activity, FileText, Briefcase, Tag, Package, Calculator } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { PAYFAST_DEFAULTS, ADMIN_EMAIL } from '../constants';
 import { StoreSettings } from '../types';
@@ -54,7 +55,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
     company_address: '',
     company_vat: '',
     company_reg: '',
-    invoice_footer_text: ''
+    invoice_footer_text: '',
+    shipping_markup: 150
   });
   const [savingSettings, setSavingSettings] = useState(false);
   
@@ -256,7 +258,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
             company_address: data.company_address || '',
             company_vat: data.company_vat || '',
             company_reg: data.company_reg || '',
-            invoice_footer_text: data.invoice_footer_text || ''
+            invoice_footer_text: data.invoice_footer_text || '',
+            shipping_markup: data.shipping_markup !== undefined ? data.shipping_markup : 150
         });
       }
     } catch (err) {
@@ -284,7 +287,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
             company_address: settings.company_address?.trim(),
             company_vat: settings.company_vat?.trim(),
             company_reg: settings.company_reg?.trim(),
-            invoice_footer_text: settings.invoice_footer_text?.trim()
+            invoice_footer_text: settings.invoice_footer_text?.trim(),
+            shipping_markup: settings.shipping_markup
         });
 
         if (error) throw error;
@@ -577,6 +581,29 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
 
                  <div className="space-y-6">
                      
+                     {/* DYNAMIC PRICING SECTION (NEW) */}
+                     <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-900 flex items-start gap-3">
+                        <Calculator className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-600" />
+                        <div>
+                            <strong>Dynamic Pricing Logic</strong>
+                            <p className="mt-1 mb-2 opacity-90">Pack prices are calculated automatically: <code>(Single Price x Qty) + Base Markup</code>.</p>
+                        </div>
+                     </div>
+
+                     <div>
+                         <label className="block text-sm font-bold text-gray-700 mb-1">Base Shipping/Handling Markup (ZAR)</label>
+                         <input 
+                            type="number" 
+                            className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 focus:border-green-500 focus:bg-white outline-none font-mono font-bold" 
+                            value={settings.shipping_markup || 150} 
+                            onChange={(e) => setSettings(prev => ({...prev, shipping_markup: parseFloat(e.target.value)}))} 
+                            placeholder="150" 
+                         />
+                         <p className="text-xs text-gray-500 mt-1">This amount is added to every 3-Pack and 6-Pack to cover shipping costs.</p>
+                     </div>
+
+                     <div className="border-t border-gray-100 my-4"></div>
+
                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-900 flex items-start gap-3">
                         <Lock className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-600" />
                         <div><strong>PayFast Configuration</strong><p className="mt-1 mb-2 opacity-90">Enter your Merchant ID and Key.</p></div>
