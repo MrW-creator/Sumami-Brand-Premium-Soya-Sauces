@@ -1301,7 +1301,8 @@ const App: React.FC = () => {
              </div>
           </section>
 
-          <footer className="bg-gray-900 text-gray-400 py-12 border-t border-gray-800">
+          {/* ADDED PADDING BOTTOM (pb-36) TO PREVENT FLOATING BUTTONS FROM BLOCKING FOOTER */}
+          <footer className="bg-gray-900 text-gray-400 py-12 border-t border-gray-800 pb-36 md:pb-12">
             <div className="container mx-auto px-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
                 <div className="col-span-1 md:col-span-2">
@@ -1326,10 +1327,19 @@ const App: React.FC = () => {
                   </ul>
                 </div>
               </div>
-              <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-gray-800">
-                 <p className="text-sm">&copy; 2024 Sumami Brand / soyasauce.co.za. All rights reserved. <span className="opacity-50 text-xs ml-2">v2.1 (Secure Checkout)</span></p>
+              
+              {/* RESTRUCTURED BOTTOM BAR: Admin Button Centered, Padding Added */}
+              <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-gray-800 gap-4">
+                 <p className="text-sm order-2 md:order-1">&copy; 2024 Sumami Brand / soyasauce.co.za. All rights reserved. <span className="opacity-50 text-xs ml-2">v2.1</span></p>
                  
-                 <div className="flex gap-4 mt-4 md:mt-0 items-center">
+                 {/* CENTERED ADMIN BUTTON */}
+                 <div className="order-3 md:order-2">
+                     <button onClick={() => setIsAdminOpen(true)} className="flex items-center gap-2 text-xs text-gray-600 hover:text-gray-400 font-bold uppercase tracking-wide transition-colors py-2 px-4 rounded-full hover:bg-gray-800">
+                        <Lock className="w-3 h-3" /> Admin Access
+                    </button>
+                 </div>
+
+                 <div className="flex gap-4 order-1 md:order-3 items-center">
                     {storeSettings?.instagram_url && (
                         <a href={storeSettings.instagram_url} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
                             <Instagram className="w-5 h-5 hover:text-white cursor-pointer transition-colors" />
@@ -1360,12 +1370,6 @@ const App: React.FC = () => {
                            </svg>
                         </a>
                     )}
-                 </div>
-
-                 <div className="mt-4 md:mt-0 md:ml-4 flex items-center gap-3">
-                    <button onClick={() => setIsAdminOpen(true)} className="text-xs text-gray-800 hover:text-gray-600 font-bold uppercase tracking-wide">
-                        Admin Access
-                    </button>
                  </div>
               </div>
             </div>
