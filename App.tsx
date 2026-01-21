@@ -74,10 +74,14 @@ const App: React.FC = () => {
   const [lastOrder, setLastOrder] = useState<{items: CartItem[], total: number} | null>(null);
   
   // Dynamic Settings State
+  /* 
+   * UPDATED 2026-01-21: Forcing Defaults to ensure Client Credentials work immediately.
+   * Supabase override is disabled below.
+   */
   const [payFastSettings, setPayFastSettings] = useState<{id: string, key: string, isLive: boolean}>({
       id: PAYFAST_DEFAULTS.merchant_id,
       key: PAYFAST_DEFAULTS.merchant_key,
-      isLive: false
+      isLive: true // Force LIVE mode
   });
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   
@@ -206,11 +210,12 @@ const App: React.FC = () => {
         const { data } = await supabase.from('store_settings').select('*').single();
         if (data) {
            setStoreSettings(data);
-           setPayFastSettings({
-             id: data.payfast_merchant_id || PAYFAST_DEFAULTS.merchant_id,
-             key: data.payfast_merchant_key || PAYFAST_DEFAULTS.merchant_key,
-             isLive: data.is_live_mode
-           });
+           // setStoreSettings(data);
+           // setPayFastSettings({
+           //   id: data.payfast_merchant_id || PAYFAST_DEFAULTS.merchant_id,
+           //   key: data.payfast_merchant_key || PAYFAST_DEFAULTS.merchant_key,
+           //   isLive: true // Force Live
+           // });
            
            if (data.shipping_markup !== undefined) {
                setShippingMarkup(data.shipping_markup);

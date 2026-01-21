@@ -20,8 +20,9 @@ export const ADMIN_EMAIL = 'waldeckwayne@gmail.com'; // <--- CHANGE THIS IF NEED
 // -----------------------------------------------------------------------------------------
 // Default Sandbox Credentials for immediate testing
 export const PAYFAST_DEFAULTS = {
-  merchant_id: '10000100',
-  merchant_key: '46f0cd694581a',
+  // Updated to Client LIVE Credentials (2026-01-21)
+  merchant_id: '10826060',
+  merchant_key: '5q7rex3ebmp2y',
   passphrase: ''
 };
 
