@@ -79,9 +79,7 @@ const PayFastCheckout: React.FC<PayFastCheckoutProps> = ({
                 <input type="hidden" name="merchant_key" value={merchantKey} />
                 <input type="hidden" name="return_url" value={`${window.location.origin}/?payment_status=success`} />
                 <input type="hidden" name="cancel_url" value={`${window.location.origin}/?payment_status=cancel`} />
-                
-                {/* Removed notify_url to prevent 404 errors since we have no backend listener */}
-                {/* <input type="hidden" name="notify_url" value="..." /> */}
+                <input type="hidden" name="notify_url" value="https://lnzloecnqcxknozokflr.supabase.co/functions/v1/payfast-webhook" />
                 
                 <input type="hidden" name="name_first" value={customer.firstName} />
                 <input type="hidden" name="name_last" value={customer.lastName} />

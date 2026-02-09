@@ -508,9 +508,15 @@ const App: React.FC = () => {
         body: {
           customerName: `${details.firstName} ${details.lastName}`,
           customerEmail: details.email,
+          customerPhone: details.phone,
+          customerAddress: `${details.address}, ${details.city}, ${details.zipCode}`,
           orderTotal: finalTotal,
           items: orderItems,
-          orderId: `SUM-${Date.now().toString().slice(-6)}` 
+          orderId: `SUM-${Date.now().toString().slice(-6)}`,
+          orderDate: new Date().toLocaleDateString('en-ZA'),
+          companyName: storeSettings?.company_name,
+          companyAddress: storeSettings?.company_address,
+          invoiceFooterText: storeSettings?.invoice_footer_text
         }
       });
 
