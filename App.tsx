@@ -14,6 +14,8 @@ import UpsellSelector from './components/UpsellSelector';
 import CookieConsent from './components/CookieConsent';
 import WhatsAppButton from './components/WhatsAppButton';
 import AnalyticsTracker from './components/AnalyticsTracker';
+import NewsletterSignup from './components/NewsletterSignup';
+import NewsletterPopup from './components/NewsletterPopup';
 
 // Shipping is now all inclusive (FREE)
 const SHIPPING_COST = 0;
@@ -60,6 +62,9 @@ const App: React.FC = () => {
 
   // Legal Modal State
   const [activePolicy, setActivePolicy] = useState<PolicyType>(null);
+
+  // Newsletter Popup State
+  const [showNewsletterPopup, setShowNewsletterPopup] = useState(false);
 
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'details' | 'payment' | 'success'>('cart');
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails>({
@@ -238,6 +243,37 @@ const App: React.FC = () => {
     }, 5000); // Change every 5 seconds
     return () => clearInterval(interval);
   }, []);
+
+  // Exit-Intent Newsletter Popup
+  useEffect(() => {
+    // Check if popup has already been shown in this session
+    const hasShownPopup = sessionStorage.getItem('newsletter_popup_shown');
+    if (hasShownPopup) return;
+
+    let timeoutId: NodeJS.Timeout;
+
+    const handleMouseLeave = (e: MouseEvent) => {
+      // Check if mouse is leaving from the top of the viewport (most common exit point)
+      if (e.clientY <= 0 && !showNewsletterPopup) {
+        // Small delay to avoid accidental triggers
+        timeoutId = setTimeout(() => {
+          setShowNewsletterPopup(true);
+          sessionStorage.setItem('newsletter_popup_shown', 'true');
+        }, 100);
+      }
+    };
+
+    // Only activate after user has been on page for 10 seconds
+    const activationTimer = setTimeout(() => {
+      document.addEventListener('mouseleave', handleMouseLeave);
+    }, 10000);
+
+    return () => {
+      clearTimeout(activationTimer);
+      clearTimeout(timeoutId);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [showNewsletterPopup]);
 
   // --- STRICT ELIGIBILITY LOGIC ---
   const getPaidCount = (items: CartItem[], variant: '3-Pack' | '6-Pack') => {
@@ -870,6 +906,11 @@ const App: React.FC = () => {
       <CookieConsent />
       <WhatsAppButton />
 
+      {/* Newsletter Exit-Intent Popup */}
+      {showNewsletterPopup && (
+        <NewsletterPopup onClose={() => setShowNewsletterPopup(false)} />
+      )}
+
       {cartCount > 0 && checkoutStep === 'cart' && !isCartOpen && (
           <button
             onClick={() => setIsCartOpen(true)}
@@ -1367,6 +1408,19 @@ const App: React.FC = () => {
           {/* ADDED PADDING BOTTOM (pb-36) TO PREVENT FLOATING BUTTONS FROM BLOCKING FOOTER */}
           <footer className="bg-gray-900 text-gray-400 py-12 border-t border-gray-800 pb-36 md:pb-12">
             <div className="container mx-auto px-4">
+              {/* Newsletter Signup Section */}
+              <div className="bg-gradient-to-r from-amber-900/20 to-amber-800/20 border border-amber-700/30 rounded-xl p-8 mb-12">
+                <div className="max-w-2xl mx-auto text-center">
+                  <h3 className="text-2xl md:text-3xl font-black text-white mb-2">
+                    Get Your Free Cookbook 📖
+                  </h3>
+                  <p className="text-gray-300 mb-6">
+                    Join our community and get exclusive recipes, cooking tips, and special offers delivered to your inbox.
+                  </p>
+                  <NewsletterSignup source="footer" className="max-w-md mx-auto" />
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
                 <div className="col-span-1 md:col-span-2">
                    <h2 className="text-3xl font-black text-white mb-4">Sumami Brand</h2>

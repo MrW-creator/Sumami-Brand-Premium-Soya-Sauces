@@ -7,9 +7,9 @@ import {
   Key, Save, ToggleLeft, ToggleRight, Mail, BarChart2, 
   MapPin, Smartphone, Monitor, Send, Link as LinkIcon, 
   AlertTriangle, Home, Zap, ShieldCheck, ArrowRight, 
-  Database, CreditCard, AlertCircle, EyeOff, Beaker, 
-  Server, Activity, FileText, Briefcase, Tag, Package, 
-  Calculator, Timer, UserCheck, Edit2, MessageCircle 
+  Database, CreditCard, AlertCircle, EyeOff, Beaker,
+  Server, Activity, FileText, Briefcase, Tag, Package,
+  Calculator, Timer, UserCheck, Edit2, MessageCircle, Download
 } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { PAYFAST_DEFAULTS, ADMIN_EMAIL, ASSETS } from '../constants';
@@ -56,7 +56,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
   const [isSendingTracking, setIsSendingTracking] = useState(false);
   
   // View State
-  const [viewTab, setViewTab] = useState<'active' | 'recovery' | 'history' | 'analytics' | 'settings' | 'inventory'>('active');
+  const [viewTab, setViewTab] = useState<'active' | 'recovery' | 'history' | 'analytics' | 'settings' | 'inventory' | 'newsletter'>('active');
+
+  // Newsletter State
+  const [subscribers, setSubscribers] = useState<any[]>([]);
 
   // Filter States
   const [searchTerm, setSearchTerm] = useState('');
@@ -123,6 +126,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
       if (isAuthenticated) {
           if (viewTab === 'inventory') fetchInventory();
           if (viewTab === 'analytics') fetchAnalytics();
+          if (viewTab === 'newsletter') fetchSubscribers();
       }
   }, [isAuthenticated, viewTab]);
 
@@ -249,6 +253,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
           setInventory(data || []);
       } catch (err) {
           console.error("Inventory fetch error", err);
+      } finally {
+          setLoading(false);
+      }
+  };
+
+  const fetchSubscribers = async () => {
+      if (!supabase) return;
+      setLoading(true);
+      try {
+          const { data, error } = await supabase
+              .from('newsletter_subscribers')
+              .select('*')
+              .order('subscribed_at', { ascending: false });
+          if (error) throw error;
+          setSubscribers(data || []);
+      } catch (err) {
+          console.error("Subscribers fetch error", err);
       } finally {
           setLoading(false);
       }
@@ -452,7 +473,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
     if (viewTab === 'history' && !isHistory) return false;
     if (viewTab === 'recovery' && !isAbandoned) return false;
 
-    if (viewTab === 'settings' || viewTab === 'analytics' || viewTab === 'inventory') return false; 
+    if (viewTab === 'settings' || viewTab === 'analytics' || viewTab === 'inventory' || viewTab === 'newsletter') return false; 
     
     // 2. SEARCH
     if (searchTerm) {
@@ -547,6 +568,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                 <button onClick={() => setViewTab('settings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${viewTab === 'settings' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'}`}>
                     <Settings className="w-5 h-5" /> Settings
                 </button>
+                <button onClick={() => setViewTab('newsletter')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${viewTab === 'newsletter' ? 'bg-green-50 text-green-700' : 'text-gray-600 hover:bg-gray-50'}`}>
+                    <Mail className="w-5 h-5" /> Newsletter
+                </button>
             </div>
             <div className="mt-auto p-4 border-t border-gray-100">
                 <div className="bg-gray-50 p-3 rounded-lg">
@@ -563,6 +587,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
              <button onClick={() => setViewTab('recovery')} className={`flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold ${viewTab === 'recovery' ? 'bg-red-100 text-red-800' : 'bg-gray-50 text-gray-600'}`}>Recovery</button>
              <button onClick={() => setViewTab('history')} className={`flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold ${viewTab === 'history' ? 'bg-amber-100 text-amber-800' : 'bg-gray-50 text-gray-600'}`}>History</button>
              <button onClick={() => setViewTab('inventory')} className={`flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold ${viewTab === 'inventory' ? 'bg-blue-100 text-blue-800' : 'bg-gray-50 text-gray-600'}`}>Inventory</button>
+             <button onClick={() => setViewTab('newsletter')} className={`flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold ${viewTab === 'newsletter' ? 'bg-green-100 text-green-800' : 'bg-gray-50 text-gray-600'}`}>Newsletter</button>
              <button onClick={() => setViewTab('settings')} className={`flex-shrink-0 px-4 py-2 rounded-lg text-xs font-bold ${viewTab === 'settings' ? 'bg-gray-200 text-gray-800' : 'bg-gray-50 text-gray-600'}`}>Settings</button>
         </div>
 
@@ -778,6 +803,169 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onSettingsUpda
                     <button onClick={saveSettings} disabled={savingSettings} className="w-full py-4 bg-gray-900 text-white font-bold rounded-xl hover:bg-black shadow-lg">
                         {savingSettings ? 'Saving...' : 'Save All Settings'}
                     </button>
+                </div>
+            )}
+
+            {/* NEWSLETTER VIEW */}
+            {viewTab === 'newsletter' && (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-900">Newsletter Subscribers</h2>
+                            <p className="text-sm text-gray-500 mt-1">Manage your email list and export subscribers</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                // Export to CSV
+                                const csv = [
+                                    ['Email', 'Subscribed Date', 'Source', 'Status'],
+                                    ...subscribers.map(s => [
+                                        s.email,
+                                        new Date(s.subscribed_at).toLocaleDateString(),
+                                        s.source,
+                                        s.is_active ? 'Active' : 'Unsubscribed'
+                                    ])
+                                ];
+                                const csvContent = csv.map(row => row.join(',')).join('\n');
+                                const blob = new Blob([csvContent], { type: 'text/csv' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `newsletter-subscribers-${new Date().toISOString().split('T')[0]}.csv`;
+                                a.click();
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold text-sm"
+                        >
+                            <Download className="w-4 h-4" /> Export CSV
+                        </button>
+                    </div>
+
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-green-100 rounded-lg">
+                                    <Mail className="w-6 h-6 text-green-600" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-gray-500">Total Subscribers</p>
+                                    <p className="text-3xl font-black text-gray-900">{subscribers.filter(s => s.is_active).length}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-blue-100 rounded-lg">
+                                    <TrendingUp className="w-6 h-6 text-blue-600" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-gray-500">This Month</p>
+                                    <p className="text-3xl font-black text-gray-900">
+                                        {subscribers.filter(s => {
+                                            const subDate = new Date(s.subscribed_at);
+                                            const now = new Date();
+                                            return subDate.getMonth() === now.getMonth() && subDate.getFullYear() === now.getFullYear();
+                                        }).length}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-gray-100 rounded-lg">
+                                    <UserCheck className="w-6 h-6 text-gray-600" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-gray-500">Unsubscribed</p>
+                                    <p className="text-3xl font-black text-gray-900">{subscribers.filter(s => !s.is_active).length}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Subscribers Table */}
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Email</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Subscribed</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Source</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <RefreshCw className="w-5 h-5 animate-spin" />
+                                                    Loading subscribers...
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ) : subscribers.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                                                No subscribers yet. Promote your newsletter signup form!
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        subscribers.map((subscriber) => (
+                                            <tr key={subscriber.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center gap-2">
+                                                        <Mail className="w-4 h-4 text-gray-400" />
+                                                        <span className="text-sm font-medium text-gray-900">{subscriber.email}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="text-sm text-gray-600">
+                                                        {new Date(subscriber.subscribed_at).toLocaleDateString()}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                        {subscriber.source}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {subscriber.is_active ? (
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800">
+                                                            <CheckSquare className="w-3 h-3" /> Active
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600">
+                                                            <EyeOff className="w-3 h-3" /> Unsubscribed
+                                                        </span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Source Breakdown */}
+                    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">Signup Sources</h3>
+                        <div className="space-y-3">
+                            {Object.entries(
+                                subscribers.reduce((acc: any, sub) => {
+                                    acc[sub.source] = (acc[sub.source] || 0) + 1;
+                                    return acc;
+                                }, {})
+                            ).map(([source, count]) => (
+                                <div key={source} className="flex items-center justify-between">
+                                    <span className="text-sm font-medium text-gray-600 capitalize">{source}</span>
+                                    <span className="text-sm font-bold text-gray-900">{count as number} subscribers</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
